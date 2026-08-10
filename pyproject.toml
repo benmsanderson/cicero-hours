@@ -36,6 +36,8 @@ select = ["E", "F", "I", "UP", "B"]
 # dashboard.py holds the page's CSS, JS and HTML as string literals, where
 # wrapping to 100 columns would hurt rather than help readability.
 "cicero_hours/dashboard.py" = ["E501"]
+# board.py likewise: its CSS and JS live in string literals.
+"cicero_hours/board.py" = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

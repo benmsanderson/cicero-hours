@@ -21,3 +21,20 @@ jobs:
       - run: pip install -e ".[dev]"
       - run: ruff check .
       - run: pytest -q
+
+  board:
+    # The allocation board is browser code, so it is exercised in a DOM rather
+    # than by pytest: build a dashboard from the synthetic export and drive it.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: pip install -e "."
+      - run: npm install
+      - run: npm run test:board

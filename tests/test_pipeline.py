@@ -4,6 +4,7 @@ import datetime as dt
 
 import pytest
 
+from cicero_hours.board import board_data, board_html
 from cicero_hours.dashboard import build_dashboard
 from cicero_hours.loader import load_export
 from cicero_hours.model import Assumptions, build_group
@@ -165,6 +166,38 @@ def test_dashboard_builds_a_self_contained_page(group, tmp_path):
     html = out.read_text(encoding="utf-8")
     assert "Plotly" in html, "plotly.js is inlined, so the file opens offline"
     assert html.count('class="plotly-graph-div') == 10
-    for tab in ("overview", "people", "projects", "deepdive", "matrix"):
+    for tab in ("overview", "people", "projects", "deepdive", "matrix", "board"):
         assert f'id="{tab}"' in html
     assert "Test Group" in html
+
+
+# --------------------------------------------------------------------- board
+
+
+def test_board_offers_only_unallocated_hours(group):
+    data = board_data(group)
+    assert [b["project"] for b in data["blocks"]] == ["ALPHA"]
+    assert [b["year"] for b in data["blocks"]] == [2027]
+    assert data["blocks"][0]["hours"] == pytest.approx(600.0)
+    assert data["blocks"][0]["owner"] is None
+
+
+def test_board_opens_on_the_year_with_most_unassigned_time(group):
+    assert board_data(group)["default_year"] == 2027
+
+
+def test_board_committed_hours_exclude_the_pseudo_employee(group):
+    committed = board_data(group)["committed"]
+    assert "Forsker Climate Mitigation" not in committed
+    assert committed["Ada Lovelace"] == {2026: 800.0, 2027: 400.0}
+
+
+def test_board_carries_the_billing_standard(group):
+    assert board_data(group)["billable_hours"] == 1250.0
+
+
+def test_board_html_embeds_its_data_and_controls(group):
+    markup = board_html(group)
+    assert "window.BOARD_DATA" in markup
+    for control in ("pool-chips", "people-grid", "board-reset", "board-csv", "year-2027"):
+        assert control in markup

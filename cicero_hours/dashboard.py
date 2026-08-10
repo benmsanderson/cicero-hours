@@ -10,6 +10,7 @@ import plotly.graph_objects as go
 import plotly.offline as pyo
 
 from . import figures as F
+from .board import BOARD_CSS, BOARD_JS, board_html
 from .model import UNALLOCATED_PERSON, Group
 
 CSS = """
@@ -76,13 +77,16 @@ function show(id) {
   panels.forEach(p => p.setAttribute('data-active', String(p.id === id)));
   const panel = document.getElementById(id);
   // Plotly cannot size a chart while its container is hidden, so resize on reveal.
-  panel.querySelectorAll('.js-plotly-plot').forEach(el => Plotly.Plots.resize(el));
+  if (typeof Plotly !== 'undefined') {
+    panel.querySelectorAll('.js-plotly-plot').forEach(el => Plotly.Plots.resize(el));
+  }
   try { history.replaceState(null, '', '#' + id); } catch (e) { /* file:// URLs */ }
 }
 tabs.forEach(t => t.addEventListener('click', () => show(t.dataset.target)));
 window.addEventListener('resize', () => {
-  document.querySelector('.panel[data-active="true"]')
-    .querySelectorAll('.js-plotly-plot').forEach(el => Plotly.Plots.resize(el));
+  if (typeof Plotly === 'undefined') return;
+  const panel = document.querySelector('.panel[data-active="true"]');
+  if (panel) panel.querySelectorAll('.js-plotly-plot').forEach(el => Plotly.Plots.resize(el));
 });
 show(location.hash ? location.hash.slice(1) : tabs[0].dataset.target);
 """
@@ -150,6 +154,7 @@ def build_dashboard(group: Group, output: str | Path, title: str = "Climate Miti
         ("matrix", "Who is on what", [
             F.fig_matrix(group, year),
         ]),
+        ("board", "Allocation board", board_html(group)),
     ]
 
     nav = "".join(
@@ -158,9 +163,9 @@ def build_dashboard(group: Group, output: str | Path, title: str = "Climate Miti
     )
     panels = "".join(
         f'<div class="panel" id="{tid}" role="tabpanel">'
-        + "".join(_fig_html(f) for f in figs)
+        + ("".join(_fig_html(f) for f in body) if isinstance(body, list) else body)
         + "</div>"
-        for tid, _, figs in tabs
+        for tid, _, body in tabs
     )
 
     excluded_note = (
@@ -208,7 +213,7 @@ def _write(output, title, group, year, nav, panels, notes, plotlyjs) -> Path:
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{html.escape(title)} · hours and allocation</title>
-<style>{CSS}</style>
+<style>{CSS}{BOARD_CSS}</style>
 <script>{plotlyjs}</script>
 </head>
 <body>
@@ -228,6 +233,7 @@ def _write(output, title, group, year, nav, panels, notes, plotlyjs) -> Path:
   hover for values, click legend entries to isolate a series.</footer>
 </div>
 <script>{JS}</script>
+<script>{BOARD_JS}</script>
 </body>
 </html>"""
     path = Path(output)

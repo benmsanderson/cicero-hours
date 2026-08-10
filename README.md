@@ -4,8 +4,9 @@ Turns the CICERO *Timer budsjettert og registrert pr. medarbeider* export into a
 single self-contained HTML dashboard of project hours, budgets and allocation
 across a research group.
 
-Five views: group capacity by year, per-person allocation and burn, per-project
-teams over time, a deep dive into any one researcher, and a person-by-project matrix.
+Six views: group capacity by year, per-person allocation and burn, per-project
+teams over time, a deep dive into any one researcher, a person-by-project matrix,
+and a drag-and-drop allocation board for planning meetings.
 
 ## Install
 
@@ -38,6 +39,24 @@ The output inlines plotly.js, so it opens offline and can be shared as one file.
 | `--holidays` | none | Weekday public holidays (`YYYY-MM-DD ...`) excluded when pro-rating the year. |
 | `--title` | Climate Mitigation | Group name in the page header. |
 | `--summary` | off | Also print the per-person table to the terminal. |
+
+## The allocation board
+
+The last tab is a what-if board for group strategy meetings. Unassigned hours
+appear as blocks on the left; drag one onto a researcher, or click the block and
+then click the card. Each researcher shows committed hours in grey, hours added
+in the session in teal, and anything past the billing standard in red. Blocks can
+be split when only part of a project's hours should go to one person, and returned
+to the pool with the × control.
+
+**It is a sandbox, not a system of record.** Nothing is written back to the budget
+system and nothing survives a page refresh, which is deliberate: a half-remembered
+browser state is worse than none when the numbers matter. Use *Download CSV* or
+*Show plan as text* before closing the page.
+
+Two things the board cannot know, and which should stay in the room rather than in
+the tool: whether a person has the right expertise for the work, and whether the
+project lead wants them. The board only checks that the hours add up.
 
 ## Data protection
 
@@ -92,6 +111,14 @@ them there if the finance system changes.
 ```bash
 pytest -q
 ruff check .
+```
+
+The allocation board is browser code, so it is tested in a DOM rather than by
+pytest:
+
+```bash
+npm install          # jsdom, dev only
+npm run test:board   # builds a dashboard from the synthetic export and drives it
 ```
 
 ## Licence
