@@ -4,8 +4,8 @@ Turns the CICERO *Timer budsjettert og registrert pr. medarbeider* export into a
 single self-contained HTML dashboard of project hours, budgets and allocation
 across a research group.
 
-Four views: group capacity by year, per-person allocation and burn, per-project
-teams over time, and a person-by-project matrix.
+Five views: group capacity by year, per-person allocation and burn, per-project
+teams over time, a deep dive into any one researcher, and a person-by-project matrix.
 
 ## Install
 
@@ -32,7 +32,9 @@ The output inlines plotly.js, so it opens offline and can be shared as one file.
 | Flag | Default | What it does |
 |---|---|---|
 | `--as-of` | today | Date the registered hours run to. Sets the straight-line "on plan" marks. |
-| `--annual-hours` | 1695 | Contracted hours for a 100% position, used for the capacity rules. |
+| `--billable-hours` | 1250 | Billable project hours expected from a full-time researcher in a year. |
+| `--group-tag` | most common in the export | Specification 5 description identifying the group. |
+| `--exclude` | none | Extra people to leave out, beyond those the group tag already filters. |
 | `--holidays` | none | Weekday public holidays (`YYYY-MM-DD ...`) excluded when pro-rating the year. |
 | `--title` | Climate Mitigation | Group name in the page header. |
 | `--summary` | off | Also print the per-person table to the terminal. |
@@ -58,6 +60,14 @@ export in `tests/synthetic.py` rather than relying on a real one.
   hours. `tidy_registered` collapses them to person / project / task / year.
 * `Forsker Climate Mitigation` is not a colleague. It carries hours budgeted to
   the group with no name against them yet, and is drawn hatched throughout.
+* The export reaches beyond the group. Shared projects pull in colleagues from
+  other groups, and central staff appear against institute-wide accounts.
+  Membership is decided by the group tag in Specification 5 rather than a list of
+  names, so joiners and leavers need no code change; `--exclude` covers whatever
+  the tag misses.
+* The 1250 h billing standard is project time expected from a full-time
+  researcher, not contracted hours. The rest of the working year is internal time
+  and absence, which is why every capacity rule applies to project hours only.
 * There are no timestamps anywhere in the file, which is why `--as-of` exists.
   Norwegian holiday leave is not spread evenly through the year, so a straight-line
   expectation read in August will understate the summer months.

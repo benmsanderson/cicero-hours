@@ -20,7 +20,7 @@ def export(tmp_path):
 def group(export):
     return build_group(
         load_export(export),
-        Assumptions(as_of=dt.date(2026, 7, 2), annual_hours=1695.0),
+        Assumptions(as_of=dt.date(2026, 7, 2), billable_hours=1250.0),
     )
 
 
@@ -67,6 +67,22 @@ def test_project_label_drops_the_job_number(group):
 
 
 # --------------------------------------------------------------- unallocated
+
+
+def test_people_without_the_group_tag_are_filtered_out(group):
+    assert "Alan Turing" not in group.people
+    assert group.excluded == ("Alan Turing",)
+    assert group.group_tag == "Utslippsreduksjon / Climate Mitigation"
+
+
+def test_explicit_exclusions_apply_on_top_of_the_tag(export):
+    g = build_group(load_export(export), exclude=("Grace Hopper",))
+    assert g.people == ["Ada Lovelace"]
+    assert "Grace Hopper" in g.excluded
+
+
+def test_billable_target_defaults_to_the_billing_standard(group):
+    assert group.person_summary(2026)["billable_target"].unique().tolist() == [1250.0]
 
 
 def test_unallocated_is_flagged_and_kept_out_of_the_roster(group):
@@ -148,7 +164,7 @@ def test_dashboard_builds_a_self_contained_page(group, tmp_path):
     out = build_dashboard(group, tmp_path / "dash.html", title="Test Group")
     html = out.read_text(encoding="utf-8")
     assert "Plotly" in html, "plotly.js is inlined, so the file opens offline"
-    assert html.count('class="plotly-graph-div') == 9
-    for tab in ("overview", "people", "projects", "matrix"):
+    assert html.count('class="plotly-graph-div') == 10
+    for tab in ("overview", "people", "projects", "deepdive", "matrix"):
         assert f'id="{tab}"' in html
     assert "Test Group" in html

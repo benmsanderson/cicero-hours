@@ -3,7 +3,8 @@
 The real export is personal data and never enters the repository, so the tests
 build their own file: three concatenated tables, quoted fields, CRLF endings,
 a leading block with no usable key, and the quirks that matter (cost-only rows
-with zero hours, repeated activity codes, the unallocated pseudo-employee).
+with zero hours, repeated activity codes, the unallocated pseudo-employee, and a
+colleague from outside the group whose rows carry no group tag).
 """
 
 from __future__ import annotations
@@ -45,6 +46,10 @@ REGISTERED = [
     '"RESEARCH 1","Grace Hopper","10503 - Fravær","KÅM","Kårstein Måseide","92 - Ferie",'
     '"92","9050","10503","Fravær","2026","187.5","187.5","0","0","0","G04",'
     '"Utslippsreduksjon / Climate Mitigation","",""',
+    # Central staff: appears in the export but carries no group tag, so is not ours.
+    '"DIRECTOR","Alan Turing","10501 - CICERO-tid Direktør","KÅM","Kårstein Måseide",'
+    '"11 - Drift/Operations","11","9000","10501","CICERO-tid Direktør","2026","700","700",'
+    '"0","0","0"," "," "," "," "',
 ]
 
 BUDGET = [

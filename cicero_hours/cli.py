@@ -28,20 +28,33 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("-o", "--output", type=Path, default=Path("hours_dashboard.html"))
     p.add_argument("--as-of", type=dt.date.fromisoformat, default=dt.date.today(),
                    help="Date the registered hours run to (YYYY-MM-DD). Default: today.")
-    p.add_argument("--annual-hours", type=float, default=1695.0,
-                   help="Contracted hours for a 100%% position in one year. Default: 1695.")
+    p.add_argument("--billable-hours", type=float, default=1250.0,
+                   help="Billable project hours expected from a full-time researcher "
+                        "in one year. Default: 1250, the CICERO billing standard.")
     p.add_argument("--holidays", nargs="*", default=[],
                    help="Weekday public holidays (YYYY-MM-DD), used to pro-rate the year.")
+    p.add_argument("--exclude", nargs="*", default=[],
+                   help="People to leave out beyond those the group tag already filters.")
+    p.add_argument("--group-tag", default=None,
+                   help="Specification 5 description identifying the group. "
+                        "Default: the most common one in the budget table.")
     p.add_argument("--title", default="Climate Mitigation")
     p.add_argument("--summary", action="store_true", help="Also print a text summary.")
     args = p.parse_args(argv)
 
     raw = load_export(args.csv)
-    group = build_group(raw, Assumptions(
-        as_of=args.as_of,
-        annual_hours=args.annual_hours,
-        holidays=tuple(args.holidays),
-    ))
+    group = build_group(
+        raw,
+        Assumptions(
+            as_of=args.as_of,
+            billable_hours=args.billable_hours,
+            holidays=tuple(args.holidays),
+        ),
+        group_tag=args.group_tag,
+        exclude=tuple(args.exclude),
+    )
+    if group.excluded:
+        print("Outside the group, left out: " + ", ".join(group.excluded))
 
     if args.summary:
         year = group.reporting_year

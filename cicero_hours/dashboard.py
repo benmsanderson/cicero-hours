@@ -103,7 +103,7 @@ def _kpis(group: Group, year: int) -> str:
     b = group.budget[group.budget["category"] == "Project"]
     unalloc_next = b[b["unallocated"] & (b["year"] > year)]["hours"].sum()
     named_next = b[~b["unallocated"] & (b["year"] > year)]["hours"].sum()
-    over = s[s["project_budget"] > group.assumptions.annual_hours]
+    over = s[s["project_budget"] > group.assumptions.billable_hours]
     reg = group.registered_by_category(year)
     project_share = reg["Project"].sum() / reg.to_numpy().sum() if reg.to_numpy().sum() else 0
 
@@ -111,7 +111,7 @@ def _kpis(group: Group, year: int) -> str:
         ("", f"{len(group.people)}", "people with hours"),
         ("", f"{b[b['year'] == year]['hours'].sum():,.0f}", f"hours budgeted for {year}"),
         ("warn" if len(over) else "", f"{len(over)}",
-         f"over {group.assumptions.annual_hours:.0f} h in {year}"),
+         f"over the {group.assumptions.billable_hours:.0f} h standard in {year}"),
         ("", f"{project_share:.0%}", "of registered time on projects"),
         ("gap", f"{unalloc_next / max(named_next + unalloc_next, 1):.0%}",
          f"of {year + 1}+ budget unallocated"),
@@ -144,6 +144,9 @@ def build_dashboard(group: Group, output: str | Path, title: str = "Climate Miti
             F.fig_project_team(group),
             F.fig_project_burn(group, year),
         ]),
+        ("deepdive", "One researcher", [
+            F.fig_person_deep_dive(group, year),
+        ]),
         ("matrix", "Who is on what", [
             F.fig_matrix(group, year),
         ]),
@@ -159,6 +162,12 @@ def build_dashboard(group: Group, output: str | Path, title: str = "Climate Miti
         + "</div>"
         for tid, _, figs in tabs
     )
+
+    excluded_note = (
+        "People outside the group appear in the export where projects are shared; "
+        + ", ".join(html.escape(p) for p in group.excluded)
+        + " are filtered out by the group tag. "
+    ) if group.excluded else ""
 
     second = group.second_groups()
     second_note = (
@@ -179,6 +188,12 @@ def build_dashboard(group: Group, output: str | Path, title: str = "Climate Miti
     a straight line: at {html.escape(a.as_of.isoformat())}, {frac:.0%} of {year}'s working days
     have passed. Norwegian holiday leave is not spread evenly through the year, so an
     August reading will understate the summer months. {html.escape(second_note)}</p>
+    <p class="note"><b>Who is counted.</b> Membership comes from the group tag on each
+    row rather than a list of names, so a new joiner or leaver needs no code change.
+    {excluded_note}The billing standard of {a.billable_hours:.0f} h is the project time
+    expected from a full-time researcher in a year; the rest of the working year is
+    internal time and absence, which is why the capacity rules apply to project hours
+    only.</p>
     """
 
     plotlyjs = pyo.get_plotlyjs()
@@ -209,7 +224,7 @@ def _write(output, title, group, year, nav, panels, notes, plotlyjs) -> Path:
   {panels}
   <div class="notes-block">{notes}</div>
   <footer>Generated {html.escape(dt.date.today().isoformat())} ·
-  capacity assumption {a.annual_hours:.0f} h per full-time year · figures are interactive:
+  billing standard {a.billable_hours:.0f} h per full-time year · figures are interactive:
   hover for values, click legend entries to isolate a series.</footer>
 </div>
 <script>{JS}</script>

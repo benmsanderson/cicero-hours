@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import pandas as pd
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 from .model import CATEGORY_ORDER, UNALLOCATED_PERSON, Group
 
@@ -34,7 +35,13 @@ PROJECT_PALETTE = [
     "#5E7B8B", "#9C6B3F", "#4F8F6B", "#B07F9B", "#365E4A",
 ]
 
-YEAR_SHADES = ["#1F5F6B", "#4E8794", "#8CB2BA", "#BFD4D9"]
+# Years get distinct hues rather than shades of one, so a stacked bar can be read
+# without counting segments. Ochre is reserved for unallocated hours.
+YEAR_HUES = ["#1F5F6B", "#6B4A72", "#4C7A3F", "#3D6BA5", "#8C5A3C"]
+
+
+def year_colours(years) -> dict[int, str]:
+    return {y: YEAR_HUES[i % len(YEAR_HUES)] for i, y in enumerate(sorted(years))}
 
 FONT = dict(
     family='"Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
@@ -88,7 +95,9 @@ def _shorten(label: str, width: int = 22) -> str:
     return label if len(label) <= width else label[: width - 1] + "\u2026"
 
 
-def _capacity_zone(fig: go.Figure, capacity: float, horizontal: bool = True) -> None:
+def _capacity_zone(
+    fig: go.Figure, capacity: float, horizontal: bool = True, label: str = "",
+) -> None:
     """The signature element: a hard capacity rule with the overrun side tinted."""
     if horizontal:
         fig.add_vrect(
@@ -97,7 +106,7 @@ def _capacity_zone(fig: go.Figure, capacity: float, horizontal: bool = True) -> 
         )
         fig.add_vline(
             x=capacity, line=dict(color="#C75A3C", width=1.4, dash="dot"),
-            annotation_text=f"{capacity:.0f} h capacity", annotation_position="top",
+            annotation_text=label or f"{capacity:.0f} h", annotation_position="top",
             annotation_font=dict(size=11, color="#C75A3C"),
         )
     else:
@@ -107,7 +116,7 @@ def _capacity_zone(fig: go.Figure, capacity: float, horizontal: bool = True) -> 
         )
         fig.add_hline(
             y=capacity, line=dict(color="#C75A3C", width=1.4, dash="dot"),
-            annotation_text=f"{capacity:.0f} h", annotation_position="right",
+            annotation_text=label or f"{capacity:.0f} h", annotation_position="right",
             annotation_font=dict(size=11, color="#C75A3C"),
         )
 
@@ -123,7 +132,7 @@ def fig_group_capacity(group: Group) -> go.Figure:
     named = named.reindex(years).fillna(0.0)
     unalloc = unalloc.reindex(years).fillna(0.0)
     headcount = len(group.people)
-    capacity = headcount * group.assumptions.annual_hours
+    capacity = headcount * group.assumptions.billable_hours
 
     fig = go.Figure()
     fig.add_bar(
@@ -141,11 +150,12 @@ def fig_group_capacity(group: Group) -> go.Figure:
         **_base_layout(
             "Project hours budgeted, by year",
             f"Hatched bars are hours booked to the group but not yet assigned to a named person. "
-            f"Rule shows {headcount} people at {group.assumptions.annual_hours:.0f} h.",
+            f"Rule is {headcount} researchers at the "
+            f"{group.assumptions.billable_hours:.0f} h billing standard.",
             height=420,
         ),
     )
-    _capacity_zone(fig, capacity, horizontal=False)
+    _capacity_zone(fig, capacity, horizontal=False, label=f"{capacity:,.0f} h billable")
     fig.update_yaxes(title_text="hours")
     return fig
 
@@ -163,17 +173,17 @@ def fig_registered_composition(group: Group, year: int) -> go.Figure:
             hovertemplate="%{y}<br>" + cat + ": %{x:,.0f} h<extra></extra>",
         )
     frac = group.assumptions.year_fraction(year)
-    expected = group.assumptions.annual_hours * frac
+    expected = group.assumptions.billable_hours * frac
     fig.update_layout(
         barmode="stack",
         **_base_layout(
             f"Hours registered in {year}, by type",
-            f"Project time, internal CICERO time and absence, side by side. "
-            f"Rule is a full-time position pro-rated to {frac:.0%} of the year.",
+            f"Project time is stacked first, so the rule reads directly against it. "
+            f"Billing standard pro-rated to {frac:.0%} of the working year.",
             height=max(380, 34 * len(df) + 130),
         ),
     )
-    _capacity_zone(fig, expected)
+    _capacity_zone(fig, expected, label=f"{expected:,.0f} h billable to date")
     fig.update_xaxes(title_text="hours registered")
     return fig
 
@@ -228,7 +238,10 @@ def fig_person_budget_stack(group: Group, year: int, top_n: int = 6) -> go.Figur
     )
     fig.update_yaxes(categoryorder="array", categoryarray=order)
     fig.update_layout(uniformtext=dict(mode="hide", minsize=9))
-    _capacity_zone(fig, group.assumptions.annual_hours)
+    _capacity_zone(
+        fig, group.assumptions.billable_hours,
+        label=f"{group.assumptions.billable_hours:,.0f} h billing standard",
+    )
     fig.update_xaxes(title_text="hours budgeted")
     return fig
 
@@ -271,11 +284,12 @@ def fig_person_forward(group: Group) -> go.Figure:
     piv = b.pivot_table(index="person", columns="year", values="hours", aggfunc="sum").fillna(0.0)
     order = piv.sum(axis=1).sort_values().index
     piv = piv.loc[order]
+    colours = year_colours(piv.columns)
     fig = go.Figure()
-    for i, year in enumerate(piv.columns):
+    for year in piv.columns:
         fig.add_bar(
             y=piv.index, x=piv[year], name=str(year), orientation="h",
-            marker_color=YEAR_SHADES[i % len(YEAR_SHADES)],
+            marker_color=colours[year],
             hovertemplate="%{y}<br>" + str(year) + ": %{x:,.0f} h<extra></extra>",
         )
     fig.update_layout(
@@ -286,7 +300,10 @@ def fig_person_forward(group: Group) -> go.Figure:
             height=max(420, 44 * len(piv) + 140),
         ),
     )
-    _capacity_zone(fig, group.assumptions.annual_hours)
+    _capacity_zone(
+        fig, group.assumptions.billable_hours,
+        label=f"{group.assumptions.billable_hours:,.0f} h billing standard",
+    )
     fig.update_xaxes(title_text="hours budgeted")
     return fig
 
@@ -300,10 +317,11 @@ def fig_project_totals(group: Group, min_hours: float = 100.0) -> go.Figure:
     keep = totals[totals >= min_hours].sort_values().index
     ps = ps[ps["project"].isin(keep)]
     years = sorted(ps["year"].unique())
+    colours = year_colours(years)
     fig = go.Figure()
-    for i, year in enumerate(years):
+    for year in years:
         sub = ps[ps["year"] == year].set_index("project").reindex(keep).fillna(0.0)
-        colour = YEAR_SHADES[i % len(YEAR_SHADES)]
+        colour = colours[year]
         fig.add_bar(
             y=keep, x=sub["budget_named"], name=str(year), orientation="h",
             marker_color=colour, legendgroup=str(year),
@@ -451,4 +469,145 @@ def fig_matrix(group: Group, year: int, min_hours: float = 1.0) -> go.Figure:
     fig.update_xaxes(tickangle=-90, side="top", showgrid=False)
     fig.update_yaxes(showgrid=False, tickfont=dict(size=11))
     fig.update_layout(margin=dict(l=10, r=20, t=210, b=30))
+    return fig
+
+
+# ------------------------------------------------------------------ deep dive
+
+
+def fig_person_deep_dive(group: Group, year: int) -> go.Figure:
+    """One researcher at a time, with every project shown rather than pooled.
+
+    Left: where this year's budget sits and how much of it has been booked.
+    Right: the same person's commitments across all years in the export.
+    """
+    people = (
+        group.person_summary(year)
+        .sort_values("project_budget", ascending=False)
+        .index.tolist()
+    )
+    budget = group.budget_by_person_project(year).set_index(["person", "project"])["hours"]
+    reg = group.registered_by_person_project(year).set_index(["person", "project"])["hours"]
+    forward = (
+        group.budget[(group.budget["category"] == "Project")]
+        .groupby(["person", "project", "year"])["hours"].sum()
+    )
+    colours = project_colours(group)
+    frac = group.assumptions.year_fraction(year)
+    years = group.years
+
+    fig = make_subplots(
+        rows=1, cols=2, column_widths=[0.56, 0.44], horizontal_spacing=0.13,
+        subplot_titles=(f"{year}: budget against hours booked", "Commitments by year"),
+    )
+    owner: list[str] = []
+
+    budget_people = set(budget.index.get_level_values(0))
+    reg_people = set(reg.index.get_level_values(0))
+    forward_people = set(forward.index.get_level_values(0))
+
+    for person in people:
+        rows = budget.loc[person] if person in budget_people else pd.Series(dtype=float)
+        rows = rows.sort_values()
+        booked = (
+            reg.loc[person].reindex(rows.index).fillna(0.0)
+            if person in reg_people else rows * 0
+        )
+        visible = person == people[0]
+
+        fig.add_bar(
+            y=rows.index, x=rows.values, orientation="h", name="Budgeted",
+            marker_color=BUDGET_COLOUR, visible=visible, legendgroup="budget",
+            offsetgroup="budget",
+            hovertemplate="%{y}<br>budgeted: %{x:,.0f} h<extra></extra>",
+            row=1, col=1,
+        )
+        owner.append(person)
+        fig.add_bar(
+            y=rows.index, x=booked.values, orientation="h", name="Booked",
+            marker_color=REGISTERED_COLOUR, visible=visible, legendgroup="booked",
+            offsetgroup="booked",
+            hovertemplate="%{y}<br>booked: %{x:,.0f} h<extra></extra>",
+            row=1, col=1,
+        )
+        owner.append(person)
+        fig.add_scatter(
+            y=rows.index, x=rows.values * frac, mode="markers", name="On plan",
+            marker=dict(symbol="line-ns", size=13, line=dict(color="#C75A3C", width=2)),
+            visible=visible, legendgroup="onplan",
+            hovertemplate="%{y}<br>on plan: %{x:,.0f} h<extra></extra>",
+            row=1, col=1,
+        )
+        owner.append(person)
+
+        person_forward = forward.loc[person] if person in forward_people else None
+        projects = (
+            person_forward.groupby("project").sum().sort_values(ascending=False).index
+            if person_forward is not None else []
+        )
+        for proj in projects:
+            series = person_forward.loc[proj].reindex(years).fillna(0.0)
+            fig.add_bar(
+                x=[str(y) for y in years], y=series.values, name=proj,
+                marker_color=colours.get(proj, "#8899A6"), visible=visible, showlegend=False,
+                offsetgroup="forward",
+                text=[_shorten(proj, 18)] * len(years), textposition="inside",
+                insidetextanchor="middle", textangle=0, constraintext="inside",
+                insidetextfont=dict(color="#FFFFFF", size=10),
+                hovertemplate="%{x}<br>" + proj + ": %{y:,.0f} h<extra></extra>",
+                row=1, col=2,
+            )
+            owner.append(person)
+
+    summary = group.person_summary(year)
+    buttons = []
+    for person in people:
+        row = summary.loc[person]
+        second = group.second_groups().get(person)
+        tail = f" · part-time in {second.split(' / ')[-1]}" if second else ""
+        buttons.append(dict(
+            label=person, method="update",
+            args=[
+                {"visible": [o == person for o in owner]},
+                {"title.text": f"<b>{person}</b><br>"
+                               f'<span style="font-size:12px;color:{MUTED}">'
+                               f"{row['project_budget']:,.0f} h budgeted across "
+                               f"{int(row['n_projects'])} projects in {year} · "
+                               f"{row['Project']:,.0f} h booked · "
+                               f"{row['Absence']:,.0f} h absence · "
+                               f"{row['Internal']:,.0f} h internal{tail}</span>"},
+            ],
+        ))
+
+    first = summary.loc[people[0]]
+    fig.update_layout(
+        barmode="stack",
+        uniformtext=dict(mode="hide", minsize=9),
+        updatemenus=[dict(
+            buttons=buttons, direction="down", showactive=True,
+            x=1, xanchor="right", y=1.22, yanchor="top",
+            bgcolor="#FFFFFF", bordercolor=HAIRLINE, font=dict(size=12),
+        )],
+        **_base_layout(
+            people[0],
+            f"{first['project_budget']:,.0f} h budgeted across "
+            f"{int(first['n_projects'])} projects in {year}",
+            height=620,
+        ),
+    )
+    # The legend sits under the panels, where it cannot collide with the subplot titles.
+    fig.update_layout(
+        margin=dict(l=10, r=20, t=130, b=90),
+        legend=dict(orientation="h", yanchor="top", y=-0.13, xanchor="left", x=0),
+    )
+    fig.add_hline(
+        y=group.assumptions.billable_hours, row=1, col=2,
+        line=dict(color="#C75A3C", width=1.4, dash="dot"),
+        annotation_text=f"{group.assumptions.billable_hours:,.0f} h",
+        annotation_position="top left", annotation_font=dict(size=11, color="#C75A3C"),
+    )
+    fig.update_xaxes(title_text="hours", row=1, col=1, gridcolor=HAIRLINE)
+    fig.update_yaxes(row=1, col=1, gridcolor=HAIRLINE, tickfont=dict(size=11))
+    fig.update_yaxes(title_text="hours budgeted", row=1, col=2, gridcolor=HAIRLINE)
+    fig.update_xaxes(row=1, col=2, gridcolor=HAIRLINE)
     return fig

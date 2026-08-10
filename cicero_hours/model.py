@@ -28,8 +28,10 @@ class Assumptions:
     """Everything the analysis needs that is not in the export."""
 
     as_of: dt.date = field(default_factory=dt.date.today)
-    # Nominal contracted hours for a 100% position in one year.
-    annual_hours: float = 1695.0
+    # Billable project hours expected from a researcher on a 100% position in one
+    # year. This is the institute's billing standard, not contracted hours: the
+    # gap between the two is internal time, absence and everything non-billable.
+    billable_hours: float = 1250.0
     # Public holidays falling on weekdays, used to pro-rate the year.
     holidays: tuple[str, ...] = ()
 
@@ -85,6 +87,7 @@ def tidy_budget(raw: RawExport) -> pd.DataFrame:
             "value": pd.to_numeric(df.get("Total Billing Price - Company"), errors="coerce"),
             "pm": _clean(df["Project Manager Name"]),
             "department": _clean(df["Avdeling"]),
+            "group_tag": _clean(df["Specification5Description"]),
             "second_group": _clean(df.get("Specification6Description", pd.Series(dtype="object"))),
         }
     )
@@ -107,13 +110,15 @@ def tidy_registered(raw: RawExport) -> pd.DataFrame:
             "value": pd.to_numeric(df.get("Billing Price Reg. - Company"), errors="coerce"),
             "activity": pd.to_numeric(df["Activity No."], errors="coerce").astype("Int64"),
             "department": _clean(df["Avdeling"]),
+            "group_tag": _clean(df["Employee Specification 5 Descr."]),
         }
     )
     out["project"] = out["project_full"].map(_project_label)
     out["category"] = out["project_no"].map(_category)
     # The registered table carries several rows per key, one per activity code,
     # including pure cost rows with zero hours. Collapse to the analysis key.
-    keys = ["person", "project_no", "project", "project_full", "task", "year", "category"]
+    keys = ["person", "project_no", "project", "project_full", "task", "year",
+            "category", "group_tag"]
     out = (
         out.groupby(keys, dropna=False, as_index=False)
         .agg(hours=("hours", "sum"), value=("value", "sum"))
@@ -129,6 +134,8 @@ class Group:
     budget: pd.DataFrame
     registered: pd.DataFrame
     assumptions: Assumptions
+    group_tag: str | None = None
+    excluded: tuple[str, ...] = ()
 
     # ---------------------------------------------------------------- people
 
@@ -197,7 +204,7 @@ class Group:
         frac = self.assumptions.year_fraction(year)
         out["expected_to_date"] = out["project_budget"] * frac
         out["variance"] = out["Project"] - out["expected_to_date"]
-        out["capacity"] = self.assumptions.annual_hours
+        out["billable_target"] = self.assumptions.billable_hours
         out["n_projects"] = (
             self.budget[
                 (self.budget["year"] == year)
@@ -241,10 +248,42 @@ class Group:
         return df.groupby(["person", "year"], as_index=False)["hours"].sum().query("hours > 0")
 
 
-def build_group(raw: RawExport, assumptions: Assumptions | None = None) -> Group:
+def build_group(
+    raw: RawExport,
+    assumptions: Assumptions | None = None,
+    group_tag: str | None = None,
+    exclude: tuple[str, ...] = (),
+) -> Group:
+    """Tidy an export and narrow it to one research group.
+
+    The export reaches beyond the group: shared projects pull in colleagues from
+    elsewhere, and central staff appear against institute-wide accounts. Rows
+    carry a group tag in Specification 5, so that is what decides membership,
+    rather than a hard-coded list of names. `exclude` is there for the cases the
+    tag does not catch.
+    """
     assumptions = assumptions or Assumptions()
+    budget = tidy_budget(raw)
+    registered = tidy_registered(raw)
+
+    tag = group_tag
+    if tag is None:
+        tags = budget["group_tag"].dropna()
+        tag = tags.mode().iloc[0] if len(tags) else None
+
+    before = set(budget["person"].dropna()) | set(registered["person"].dropna())
+    if tag is not None:
+        budget = budget[budget["group_tag"] == tag]
+        registered = registered[registered["group_tag"] == tag]
+    if exclude:
+        budget = budget[~budget["person"].isin(exclude)]
+        registered = registered[~registered["person"].isin(exclude)]
+    after = set(budget["person"].dropna()) | set(registered["person"].dropna())
+
     return Group(
-        budget=tidy_budget(raw),
-        registered=tidy_registered(raw),
+        budget=budget.reset_index(drop=True),
+        registered=registered.reset_index(drop=True),
         assumptions=assumptions,
+        group_tag=tag,
+        excluded=tuple(sorted(before - after)),
     )
