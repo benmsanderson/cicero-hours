@@ -42,21 +42,38 @@ The output inlines plotly.js, so it opens offline and can be shared as one file.
 
 ## The allocation board
 
-The last tab is a what-if board for group strategy meetings. Unassigned hours
-appear as blocks on the left; drag one onto a researcher, or click the block and
-then click the card. Each researcher shows committed hours in grey, hours added
-in the session in teal, and anything past the billing standard in red. Blocks can
-be split when only part of a project's hours should go to one person, and returned
-to the pool with the × control.
+The last tab is a what-if board for group strategy meetings. **Every** budgeted
+hour is a block, including hours that already have a name against them, so an
+oversubscribed researcher can hand work to a colleague as easily as spare hours
+can be placed. Drag a block onto a card, or click the block and then the card;
+split it first if only part should move; the × sends it back to unassigned.
+Picking up a block shades the cards it would push past the guide.
+
+Hours never move between years. Grant profiles fix when hours fall, so offering
+that would be offering a fiction.
+
+The billing standard is a **guide, not a limit**. Researchers legitimately bill
+above and below it, so each card also carries that person's own rate, annualised
+from what they have booked so far, and the thin vertical mark on the bar is where
+their budget started. Crossing the guide is shaded rather than alarmed; only well
+past it turns red.
+
+*Add card* creates a hypothetical person. When the arithmetic will not close on
+the people you have, the honest output of the meeting is an FTE case, and the
+board should be able to express that.
+
+*Undo* steps back through moves. *Download CSV* and *Show plan as text* export the
+result, with where each block started alongside where it ended, plus a change
+summary per person for the minutes.
 
 **It is a sandbox, not a system of record.** Nothing is written back to the budget
 system and nothing survives a page refresh, which is deliberate: a half-remembered
-browser state is worse than none when the numbers matter. Use *Download CSV* or
-*Show plan as text* before closing the page.
+browser state is worse than none when the numbers matter.
 
 Two things the board cannot know, and which should stay in the room rather than in
 the tool: whether a person has the right expertise for the work, and whether the
-project lead wants them. The board only checks that the hours add up.
+project lead wants them. The board only checks that the hours add up. Some hours
+are not transferable at all, and nothing in the export marks them.
 
 ## Data protection
 

@@ -174,30 +174,51 @@ def test_dashboard_builds_a_self_contained_page(group, tmp_path):
 # --------------------------------------------------------------------- board
 
 
-def test_board_offers_only_unallocated_hours(group):
-    data = board_data(group)
-    assert [b["project"] for b in data["blocks"]] == ["ALPHA"]
-    assert [b["year"] for b in data["blocks"]] == [2027]
-    assert data["blocks"][0]["hours"] == pytest.approx(600.0)
-    assert data["blocks"][0]["owner"] is None
+def test_board_makes_every_budgeted_hour_a_block(group):
+    blocks = board_data(group)["blocks"]
+    assert {(b["project"], b["year"], b["origin"]) for b in blocks} == {
+        ("ALPHA", 2026, "Ada Lovelace"),
+        ("ALPHA", 2027, "Ada Lovelace"),
+        ("ALPHA", 2027, None),
+        ("BETA", 2026, "Grace Hopper"),
+    }, "the zero-hour 2028 line is dropped"
+
+
+def test_board_blocks_start_where_they_are_budgeted(group):
+    for b in board_data(group)["blocks"]:
+        assert b["owner"] == b["origin"]
+
+
+def test_board_baseline_matches_the_named_budget(group):
+    baseline = board_data(group)["baseline"]
+    assert baseline["Ada Lovelace"] == {2026: 800.0, 2027: 400.0}
+    assert baseline["Grace Hopper"] == {2026: 500.0}
+    assert "Forsker Climate Mitigation" not in baseline
 
 
 def test_board_opens_on_the_year_with_most_unassigned_time(group):
     assert board_data(group)["default_year"] == 2027
 
 
-def test_board_committed_hours_exclude_the_pseudo_employee(group):
-    committed = board_data(group)["committed"]
-    assert "Forsker Climate Mitigation" not in committed
-    assert committed["Ada Lovelace"] == {2026: 800.0, 2027: 400.0}
+def test_board_annualises_each_persons_own_billing_rate(group):
+    rate = board_data(group)["rate"]
+    frac = group.assumptions.year_fraction(2026)
+    assert rate["Ada Lovelace"] == pytest.approx(round(400.0 / frac, -1))
+    assert "Grace Hopper" in rate
 
 
-def test_board_carries_the_billing_standard(group):
+def test_board_rate_is_omitted_too_early_in_the_year(export):
+    early = build_group(load_export(export), Assumptions(as_of=dt.date(2026, 1, 8)))
+    assert board_data(early)["rate"] == {}
+
+
+def test_board_carries_the_billing_standard_as_a_guide(group):
     assert board_data(group)["billable_hours"] == 1250.0
 
 
 def test_board_html_embeds_its_data_and_controls(group):
     markup = board_html(group)
     assert "window.BOARD_DATA" in markup
-    for control in ("pool-chips", "people-grid", "board-reset", "board-csv", "year-2027"):
+    for control in ("pool-chips", "people-grid", "board-reset", "board-undo",
+                    "board-add", "board-csv", "year-2027"):
         assert control in markup
