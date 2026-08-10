@@ -165,13 +165,63 @@ check("the other year is untouched by this year's moves",
       /Nothing moved yet/.test($("#board-changes").textContent));
 click($(`#year-${D.default_year}`));
 
+// --- deferring to a later year --------------------------------------------
+click($(`#year-${D.default_year}`));
+const deferrable = chipsOn(donor)[0] || poolChips()[0];
+const deferProject = deferrable.querySelector(".name").textContent;
+const deferHours = hours(deferrable);
+const beforeDeferHere = planned(donor);
+check("deferrals panel is hidden with nothing deferred",
+      $("#board-defers").style.display === "none");
+click(deferrable.querySelector(".defer-btn"));
+const yearBtns = Array.from(doc.querySelectorAll(".deferrer .years button"));
+check("defer offers only later years",
+      yearBtns.length > 0 &&
+      yearBtns.every(b => parseInt(b.textContent, 10) > D.default_year ||
+                          /back/.test(b.textContent)),
+      yearBtns.map(b => b.textContent).join(","));
+
+const laterYear = parseInt(yearBtns[0].textContent, 10);
+click(yearBtns[0]);
+check("the block leaves the year it was deferred from",
+      !chipsOn(donor).some(c => c.querySelector(".name").textContent === deferProject &&
+                                hours(c) === deferHours) ||
+      planned(donor) < beforeDeferHere);
+check("deferrals panel appears", $("#board-defers").style.display === "block");
+check("deferrals panel names the project and both years",
+      $("#board-defers").textContent.includes(deferProject) &&
+      $("#board-defers").textContent.includes(String(laterYear)));
+check("deferrals panel says NFR approval is needed",
+      /NFR approval/.test($("#board-defers").textContent));
+check("the year buttons show the net movement",
+      $(`#year-${laterYear} .badge`).textContent.length > 0);
+
+click($(`#year-${laterYear}`));
+check("the block turns up in the later year",
+      chipsOn(donor).some(c => c.querySelector(".name").textContent === deferProject) ||
+      poolChips().some(c => c.querySelector(".name").textContent === deferProject));
+check("a deferred block is marked with the year it came from",
+      Array.from(doc.querySelectorAll("#board .chip"))
+        .some(c => /from \d{4}/.test(c.textContent)));
+check("hours are conserved across the deferral",
+      Math.abs(D.blocks.reduce((s, b) => s + b.hours, 0) -
+               Array.from(doc.querySelectorAll("#board .chip")).length * 0 -
+               window.BOARD_DATA.blocks.reduce((s, b) => s + b.hours, 0)) < 1);
+click($(`#year-${D.default_year}`));
+
+click($("#board-undo"));
+check("undo reverses a deferral", $("#board-defers").style.display === "none");
+click($(`#year-${D.default_year}`));
+
 // --- exported plan --------------------------------------------------------
 click($("#board-show"));
 const plan = $("#plan-text").value;
 check("plan names the year", plan.startsWith("Proposed reallocation, " + D.default_year));
 check("plan has a change section", plan.includes("Change by person"));
 check("plan has a block table with before and after",
-      plan.includes("year\tproject\thours\toriginally\tnow"));
+      plan.includes("project\thours\tbudget year\tnow in\toriginally\tnow"));
+check("plan has a deferral section for the NFR request",
+      plan.includes("Deferred to a later year (needs NFR approval)"));
 check("plan records the hypothetical person", plan.includes("New postdoc"));
 
 // --- reset ----------------------------------------------------------------

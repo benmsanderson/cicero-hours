@@ -49,8 +49,13 @@ can be placed. Drag a block onto a card, or click the block and then the card;
 split it first if only part should move; the × sends it back to unassigned.
 Picking up a block shades the cards it would push past the guide.
 
-Hours never move between years. Grant profiles fix when hours fall, so offering
-that would be offering a fiction.
+*Defer* pushes a block into a later year of the same project. Hours are never
+pulled earlier than they were budgeted, and never moved to another project. A
+deferral changes the grant's spending profile, so it needs NFR approval before it
+is real: deferrals are therefore collected in their own panel at the bottom of the
+board, which is the content of that request. The year buttons show the net hours
+each year has gained or lost, and the board warns when a block is being pushed
+into a year the project has no budget in at all.
 
 The billing standard is a **guide, not a limit**. Researchers legitimately bill
 above and below it, so each card also carries that person's own rate, annualised

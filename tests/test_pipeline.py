@@ -187,6 +187,11 @@ def test_board_makes_every_budgeted_hour_a_block(group):
 def test_board_blocks_start_where_they_are_budgeted(group):
     for b in board_data(group)["blocks"]:
         assert b["owner"] == b["origin"]
+        assert b["year"] == b["oyear"]
+
+
+def test_board_knows_which_years_each_project_is_funded_in(group):
+    assert board_data(group)["project_years"] == {"ALPHA": [2026, 2027], "BETA": [2026]}
 
 
 def test_board_baseline_matches_the_named_budget(group):

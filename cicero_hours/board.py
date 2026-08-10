@@ -3,7 +3,10 @@
 Every budgeted hour is a block, whether it already has a name against it or not,
 so an oversubscribed researcher can hand work to a colleague as easily as spare
 hours can be placed. Blocks move between people and to and from the unassigned
-pool; they never move between years, because grant profiles fix when hours fall.
+pool, and they can be deferred to a later year within the same project. A
+deferral changes the grant's spending profile, so those need NFR approval and are
+listed separately for exactly that purpose. Hours are never pulled earlier than
+they were budgeted.
 
 The billing standard is drawn as a guide, not a limit. Researchers legitimately
 bill above and below it, so each card also carries that person's own current
@@ -82,8 +85,25 @@ BOARD_CSS = """
 .chip .hrs { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12px; }
 .chip .x { cursor: pointer; color: var(--muted); font-size: 15px; line-height: 1; }
 .chip .x:hover { color: var(--alarm); }
-.chip .split-btn { cursor: pointer; color: var(--muted); font-size: 11px; }
-.chip .split-btn:hover { color: var(--teal); }
+.chip .split-btn, .chip .defer-btn { cursor: pointer; color: var(--muted); font-size: 11px; }
+.chip .split-btn:hover, .chip .defer-btn:hover { color: var(--teal); }
+.chip.deferred { border-left: 3px solid #6B4A72; }
+.chip .from.defer { color: #6B4A72; }
+.deferrer { padding: 6px 8px; border: 1px dashed var(--hairline); border-top: 0;
+            background: #F6F2F7; font-size: 12px; }
+.deferrer .years { display: flex; gap: 6px; margin-top: 5px; flex-wrap: wrap; }
+.deferrer .years button { font-size: 12px; padding: 3px 9px; }
+.deferrer .caution { color: #9A6B15; margin-top: 5px; display: block; }
+.seg button .badge { font-size: 10px; color: #6B4A72; margin-left: 5px; }
+.seg button[aria-pressed="true"] .badge { color: #EBD9EF; }
+.defers { margin-top: 12px; padding: 12px 14px; background: var(--card);
+          border: 1px solid var(--hairline); border-left: 3px solid #6B4A72; }
+.defers h3 { margin: 0 0 4px; font-size: 13px; font-weight: 650; }
+.defers .why { font-size: 12px; color: var(--muted); margin: 0 0 8px; }
+.defers table { border-collapse: collapse; font-size: 13px; width: 100%; }
+.defers td { padding: 3px 10px 3px 0; }
+.defers td.n { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+               text-align: right; white-space: nowrap; }
 .splitter { display: flex; gap: 6px; padding: 6px 8px; border: 1px dashed var(--hairline);
             border-top: 0; background: #F4F8F9; }
 .splitter input { width: 74px; font: inherit; font-size: 12px; padding: 3px 5px;
@@ -123,6 +143,7 @@ BOARD_JS = """
   let history = [];
   let selected = null;
   let splitting = null;
+  let deferring = null;
 
   function clone(x) { return JSON.parse(JSON.stringify(x)); }
   const fmt = n => Math.round(n).toLocaleString('en-GB');
@@ -151,19 +172,24 @@ BOARD_JS = """
     const c = document.createElement('div');
     const freed = inPool && b.origin !== null;
     const moved = !inPool && b.origin !== b.owner;
-    c.className = 'chip' + (inPool ? (freed ? ' freed' : ' unassigned') : (moved ? ' moved' : ''));
+    const deferred = b.year !== b.oyear;
+    c.className = 'chip' + (inPool ? (freed ? ' freed' : ' unassigned') : (moved ? ' moved' : '')) +
+                  (deferred ? ' deferred' : '');
     c.draggable = true;
     c.dataset.id = b.id;
     c.setAttribute('aria-selected', String(selected === b.id));
     c.title = b.project + ' \\u00b7 ' + fmt(b.hours) + ' h' +
               (b.pm ? ' \\u00b7 led by ' + b.pm : '') +
-              (b.origin ? ' \\u00b7 originally ' + b.origin : ' \\u00b7 originally unassigned');
+              (b.origin ? ' \\u00b7 originally ' + b.origin : ' \\u00b7 originally unassigned') +
+              (deferred ? ' \\u00b7 deferred from ' + b.oyear : '');
     c.innerHTML =
       '<span class="name">' + b.project + '</span>' +
       (freed ? '<span class="from">was ' + b.origin + '</span>' : '') +
       (moved ? '<span class="from">from ' + (b.origin || 'pool') + '</span>' : '') +
+      (deferred ? '<span class="from defer">from ' + b.oyear + '</span>' : '') +
       '<span class="hrs">' + fmt(b.hours) + ' h</span>' +
       '<span class="split-btn" title="Split this block">split</span>' +
+      '<span class="defer-btn" title="Move to a later year of this project">defer</span>' +
       (inPool ? '' : '<span class="x" title="Move to unassigned">\\u00d7</span>');
 
     c.addEventListener('dragstart', e => {
@@ -175,7 +201,10 @@ BOARD_JS = """
     c.addEventListener('click', e => {
       if (e.target.classList.contains('x')) { move(b.id, null); return; }
       if (e.target.classList.contains('split-btn')) {
-        splitting = splitting === b.id ? null : b.id; render(); return;
+        splitting = splitting === b.id ? null : b.id; deferring = null; render(); return;
+      }
+      if (e.target.classList.contains('defer-btn')) {
+        deferring = deferring === b.id ? null : b.id; splitting = null; render(); return;
       }
       selected = selected === b.id ? null : b.id;
       render();
@@ -196,7 +225,52 @@ BOARD_JS = """
       input.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
       wrap.appendChild(s);
     }
+
+    if (deferring === b.id) wrap.appendChild(deferPanel(b));
     return wrap;
+  }
+
+  // Hours can be pushed to a later year of the same project, never pulled earlier
+  // than they were budgeted, and never moved to another project.
+  function deferPanel(b) {
+    const d = document.createElement('div');
+    d.className = 'deferrer';
+    const options = DATA.years.filter(y => y >= b.oyear && y !== b.year);
+    if (!options.length) {
+      d.innerHTML = '<span>No later year for ' + b.project + ' in this budget.</span>';
+      return d;
+    }
+    const funded = DATA.project_years[b.project] || [];
+    d.innerHTML = '<span>Move these ' + fmt(b.hours) + ' h to:</span><div class="years"></div>';
+    const row = d.querySelector('.years');
+    options.forEach(y => {
+      const btn = document.createElement('button');
+      btn.className = 'btn';
+      btn.textContent = y === b.oyear ? y + ' (back)' : y;
+      btn.addEventListener('click', () => defer(b.id, y));
+      row.appendChild(btn);
+    });
+    const unfunded = options.filter(y => !funded.includes(y) && y !== b.oyear);
+    if (unfunded.length) {
+      // Appended as a node: innerHTML += here would re-parse the panel and drop
+      // the click listeners just attached to the year buttons.
+      const caution = document.createElement('span');
+      caution.className = 'caution';
+      caution.textContent = b.project + ' has no budget in ' + unfunded.join(', ') +
+                            ' \u2014 check the project actually runs that long.';
+      d.appendChild(caution);
+    }
+    return d;
+  }
+
+  function defer(id, targetYear) {
+    const b = blocks.find(x => x.id === id);
+    if (!b || targetYear < b.oyear || targetYear === b.year) return;
+    push();
+    b.year = targetYear;
+    deferring = null;
+    selected = null;
+    render();
   }
 
   // Shade the cards a block would push past the guide, before it is dropped.
@@ -213,7 +287,7 @@ BOARD_JS = """
     if (!b || !(hours > 0) || hours >= b.hours) return;
     push();
     blocks.push({ id: b.id + '/' + Date.now(), project: b.project, year: b.year, pm: b.pm,
-                  hours: hours, owner: b.owner, origin: b.origin });
+                  hours: hours, owner: b.owner, origin: b.origin, oyear: b.oyear });
     b.hours = b.hours - hours;
     splitting = null;
     render();
@@ -221,7 +295,7 @@ BOARD_JS = """
 
   function move(id, owner) {
     const b = blocks.find(x => x.id === id);
-    if (!b || b.owner === owner) { selected = null; render(); return; }
+    if (!b || b.owner === owner) { selected = null; deferring = null; render(); return; }
     push();
     b.owner = owner;
     selected = null;
@@ -294,8 +368,15 @@ BOARD_JS = """
 
   function render() {
     DATA.years.forEach(y => {
-      const b = el('year-' + y);
-      if (b) b.setAttribute('aria-pressed', String(y === year));
+      const btn = el('year-' + y);
+      if (!btn) return;
+      btn.setAttribute('aria-pressed', String(y === year));
+      const into = blocks.filter(b => b.year === y && b.oyear !== y)
+                         .reduce((s, b) => s + b.hours, 0);
+      const out = blocks.filter(b => b.oyear === y && b.year !== y)
+                        .reduce((s, b) => s + b.hours, 0);
+      const net = into - out;
+      btn.querySelector('.badge').textContent = Math.round(net) === 0 ? '' : signed(net) + ' h';
     });
     el('board-undo').disabled = history.length === 0;
 
@@ -321,6 +402,7 @@ BOARD_JS = """
       .forEach(p => grid.appendChild(personCard(p, sc)));
 
     renderChanges();
+    renderDeferrals();
 
     const overGuide = people().filter(p => total(p) > guide).length;
     el('board-total').innerHTML =
@@ -365,6 +447,32 @@ BOARD_JS = """
       ).join('') + '</tbody></table>';
   }
 
+  function deferrals() {
+    return blocks
+      .filter(b => b.year !== b.oyear)
+      .map(b => ({ project: b.project, hours: b.hours, from: b.oyear, to: b.year,
+                   owner: b.owner || 'unassigned' }))
+      .sort((a, b) => a.project.localeCompare(b.project) || a.from - b.from);
+  }
+
+  function renderDeferrals() {
+    const rows = deferrals();
+    const box = el('board-defers');
+    if (!rows.length) { box.style.display = 'none'; return; }
+    box.style.display = 'block';
+    const hrs = rows.reduce((s, r) => s + r.hours, 0);
+    box.innerHTML =
+      '<h3>Deferred to a later year \u00b7 ' + fmt(hrs) + ' h</h3>' +
+      '<p class="why">Moving hours between years changes the spending profile, so each of ' +
+      'these needs NFR approval before it is real. This list is the request.</p>' +
+      '<table><tbody>' +
+      rows.map(r =>
+        '<tr><td>' + r.project + '</td><td class="n">' + fmt(r.hours) + ' h</td>' +
+        '<td class="n">' + r.from + ' \u2192 ' + r.to + '</td>' +
+        '<td>' + r.owner + '</td></tr>').join('') +
+      '</tbody></table>';
+  }
+
   function planText() {
     const changed = changedPeople();
     const lines = ['Proposed reallocation, ' + year,
@@ -372,20 +480,32 @@ BOARD_JS = """
     changed.forEach(r =>
       lines.push([r.person, Math.round(r.was), Math.round(r.now), signed(r.delta)].join('\\t')));
     if (!changed.length) lines.push('(nothing moved)');
-    lines.push('', 'Blocks', 'year\\tproject\\thours\\toriginally\\tnow');
+
+    const defers = deferrals();
+    lines.push('', 'Deferred to a later year (needs NFR approval)',
+               'project\\thours\\tfrom\\tto\\theld by');
+    if (!defers.length) lines.push('(none)');
+    defers.forEach(r => lines.push([r.project, Math.round(r.hours), r.from, r.to,
+                                    r.owner].join('\\t')));
+
+    lines.push('', 'Blocks',
+               'project\\thours\\tbudget year\\tnow in\\toriginally\\tnow');
     blocks.slice()
-      .sort((a, b) => a.year - b.year || a.project.localeCompare(b.project))
-      .forEach(b => lines.push([b.year, b.project, Math.round(b.hours),
-                                b.origin || 'unassigned', b.owner || 'unassigned'].join('\\t')));
+      .sort((a, b) => a.project.localeCompare(b.project) || a.year - b.year)
+      .forEach(b => lines.push([b.project, Math.round(b.hours), b.oyear, b.year,
+                                b.origin || 'unassigned',
+                                b.owner || 'unassigned'].join('\\t')));
     return lines.join('\\n');
   }
 
   function csvText() {
-    const rows = [['year', 'project', 'hours', 'originally', 'now']];
+    const rows = [['project', 'hours', 'budget_year', 'planned_year',
+                   'originally', 'now', 'deferred']];
     blocks.slice()
-      .sort((a, b) => a.year - b.year || a.project.localeCompare(b.project))
-      .forEach(b => rows.push([b.year, b.project, Math.round(b.hours),
-                               b.origin || 'unassigned', b.owner || 'unassigned']));
+      .sort((a, b) => a.project.localeCompare(b.project) || a.year - b.year)
+      .forEach(b => rows.push([b.project, Math.round(b.hours), b.oyear, b.year,
+                               b.origin || 'unassigned', b.owner || 'unassigned',
+                               b.year !== b.oyear ? 'yes' : 'no']));
     return rows
       .map(r => r.map(v => /[",]/.test(String(v)) ? '"' + v + '"' : v).join(','))
       .join('\\n');
@@ -402,7 +522,7 @@ BOARD_JS = """
   el('board-reset').addEventListener('click', () => {
     blocks = clone(DATA.blocks);
     extraPeople = [];
-    history = []; selected = null; splitting = null;
+    history = []; selected = null; splitting = null; deferring = null;
     render();
   });
   el('board-add').addEventListener('click', () => {
@@ -431,7 +551,7 @@ BOARD_JS = """
   DATA.years.forEach(y => {
     const b = el('year-' + y);
     if (b) b.addEventListener('click', () => {
-      year = y; selected = null; splitting = null; render();
+      year = y; selected = null; splitting = null; deferring = null; render();
     });
   });
   dropTarget(el('pool'), null);
@@ -469,7 +589,15 @@ def board_data(group: Group) -> dict:
             "pm": None if row.pm is None else str(row.pm),
             "owner": owner,
             "origin": owner,
+            "oyear": int(row.year),
         })
+
+    # Which years each project actually has budget in, so a deferral into a year
+    # the project does not run can be flagged rather than silently accepted.
+    project_years = {
+        str(proj): sorted(int(y) for y in sub["year"].unique())
+        for proj, sub in project.groupby("project")
+    }
 
     baseline: dict[str, dict[int, float]] = {}
     for b in blocks:
@@ -504,6 +632,7 @@ def board_data(group: Group) -> dict:
         "rate": rate,
         "second_groups": {p: g.split(" / ")[-1] for p, g in group.second_groups().items()},
         "blocks": blocks,
+        "project_years": project_years,
         "billable_hours": group.assumptions.billable_hours,
         "unallocated_person": UNALLOCATED_PERSON,
     }
@@ -512,7 +641,7 @@ def board_data(group: Group) -> dict:
 def board_html(group: Group) -> str:
     data = board_data(group)
     years = "".join(
-        f'<button id="year-{y}" aria-pressed="false">{y}</button>' for y in data["years"]
+        f'<button id="year-{y}" aria-pressed="false">{y}<span class="badge"></span></button>' for y in data["years"]
     )
     guide = data["billable_hours"]
     return f"""
@@ -520,7 +649,10 @@ def board_html(group: Group) -> str:
   <p class="hint">Every budgeted hour is a block here, including hours that already have a
   name against them. Drag one onto another researcher, or click it and then click a card;
   split a block first if only part of it should move. The × sends a block back to
-  unassigned. Hours never move between years, since grant profiles fix when they fall.
+  unassigned. <b>Defer</b> pushes a block into a later year of the same project, which
+  changes the grant's spending profile and so needs NFR approval; those moves are listed
+  separately at the bottom, ready to go in the request. Hours are never pulled earlier
+  than they were budgeted.
   The {guide:,.0f} h line is a guide rather than a limit, so each card also shows that
   person's own current billing rate, and the thin vertical mark is where they started.
   Nothing is saved and nothing is written back to the budget system: export the plan
@@ -547,6 +679,7 @@ def board_html(group: Group) -> str:
   </div>
   <div class="board-total" id="board-total"></div>
   <div class="changes" id="board-changes"></div>
+  <div class="defers" id="board-defers" style="display:none"></div>
   <textarea id="plan-text" readonly aria-label="The plan as tab-separated text"></textarea>
 </div>
 <script>window.BOARD_DATA = {json.dumps(data)};</script>
