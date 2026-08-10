@@ -1,0 +1,250 @@
+"""Turn the raw export tables into tidy frames and derived quantities."""
+
+from __future__ import annotations
+
+import datetime as dt
+from dataclasses import dataclass, field
+
+import numpy as np
+import pandas as pd
+
+from .loader import RawExport
+
+# Job numbers below this are internal CICERO accounts rather than projects.
+PROJECT_JOB_FLOOR = 31000
+
+# Internal accounts, grouped into the categories we report.
+ABSENCE_JOBS = {10503}
+INTERNAL_JOBS = {10501, 10506}
+
+# The pseudo-employee the export uses for budgeted but unassigned hours.
+UNALLOCATED_PERSON = "Forsker Climate Mitigation"
+
+CATEGORY_ORDER = ["Project", "Internal", "Absence", "Other"]
+
+
+@dataclass
+class Assumptions:
+    """Everything the analysis needs that is not in the export."""
+
+    as_of: dt.date = field(default_factory=dt.date.today)
+    # Nominal contracted hours for a 100% position in one year.
+    annual_hours: float = 1695.0
+    # Public holidays falling on weekdays, used to pro-rate the year.
+    holidays: tuple[str, ...] = ()
+
+    def year_fraction(self, year: int) -> float:
+        """Share of the year's working days that have elapsed at as_of."""
+        start = dt.date(year, 1, 1)
+        end = dt.date(year + 1, 1, 1)
+        if self.as_of <= start:
+            return 0.0
+        if self.as_of >= end:
+            return 1.0
+        hol = np.array(self.holidays or [], dtype="datetime64[D]")
+        total = np.busday_count(start, end, holidays=hol)
+        done = np.busday_count(start, self.as_of, holidays=hol)
+        return float(done) / float(total) if total else 0.0
+
+
+def _category(job_no: float) -> str:
+    if pd.isna(job_no):
+        return "Other"
+    job = int(job_no)
+    if job in ABSENCE_JOBS:
+        return "Absence"
+    if job in INTERNAL_JOBS:
+        return "Internal"
+    if job >= PROJECT_JOB_FLOOR:
+        return "Project"
+    return "Other"
+
+
+def _project_label(prosjekt: str) -> str:
+    """'31679 - FUTURA' becomes 'FUTURA'. Falls back to the raw string."""
+    if not isinstance(prosjekt, str):
+        return "Unknown"
+    parts = prosjekt.split(" - ", 1)
+    return parts[1].strip() if len(parts) == 2 else prosjekt.strip()
+
+
+def _clean(series: pd.Series) -> pd.Series:
+    return series.astype("string").str.strip().replace({"": pd.NA})
+
+
+def tidy_budget(raw: RawExport) -> pd.DataFrame:
+    df = raw.require("budget").copy()
+    out = pd.DataFrame(
+        {
+            "person": _clean(df["Medarbeider"]),
+            "project_no": pd.to_numeric(df["Job No."], errors="coerce"),
+            "project_full": _clean(df["Prosjekt"]),
+            "task": _clean(df["Oppgave"]),
+            "year": pd.to_numeric(df["Budget Type"], errors="coerce").astype("Int64"),
+            "hours": pd.to_numeric(df["Quantity - Hours"], errors="coerce").fillna(0.0),
+            "value": pd.to_numeric(df.get("Total Billing Price - Company"), errors="coerce"),
+            "pm": _clean(df["Project Manager Name"]),
+            "department": _clean(df["Avdeling"]),
+            "second_group": _clean(df.get("Specification6Description", pd.Series(dtype="object"))),
+        }
+    )
+    out["project"] = out["project_full"].map(_project_label)
+    out["category"] = out["project_no"].map(_category)
+    out["unallocated"] = out["person"] == UNALLOCATED_PERSON
+    return out.dropna(subset=["year"]).reset_index(drop=True)
+
+
+def tidy_registered(raw: RawExport) -> pd.DataFrame:
+    df = raw.require("registered").copy()
+    out = pd.DataFrame(
+        {
+            "person": _clean(df["Medarbeider"]),
+            "project_no": pd.to_numeric(df["Job No."], errors="coerce"),
+            "project_full": _clean(df["Prosjekt"]),
+            "task": _clean(df["Oppgave"]),
+            "year": pd.to_numeric(df["Year str"], errors="coerce").astype("Int64"),
+            "hours": pd.to_numeric(df["Hours - Reg."], errors="coerce").fillna(0.0),
+            "value": pd.to_numeric(df.get("Billing Price Reg. - Company"), errors="coerce"),
+            "activity": pd.to_numeric(df["Activity No."], errors="coerce").astype("Int64"),
+            "department": _clean(df["Avdeling"]),
+        }
+    )
+    out["project"] = out["project_full"].map(_project_label)
+    out["category"] = out["project_no"].map(_category)
+    # The registered table carries several rows per key, one per activity code,
+    # including pure cost rows with zero hours. Collapse to the analysis key.
+    keys = ["person", "project_no", "project", "project_full", "task", "year", "category"]
+    out = (
+        out.groupby(keys, dropna=False, as_index=False)
+        .agg(hours=("hours", "sum"), value=("value", "sum"))
+        .query("hours != 0 or value != 0")
+    )
+    return out.dropna(subset=["year"]).reset_index(drop=True)
+
+
+@dataclass
+class Group:
+    """Tidy budget and registration for one organisational group."""
+
+    budget: pd.DataFrame
+    registered: pd.DataFrame
+    assumptions: Assumptions
+
+    # ---------------------------------------------------------------- people
+
+    @property
+    def years(self) -> list[int]:
+        ys = set(self.budget["year"].dropna()) | set(self.registered["year"].dropna())
+        return sorted(int(y) for y in ys)
+
+    @property
+    def reporting_year(self) -> int:
+        """The most recent year with registered hours."""
+        reg_years = self.registered["year"].dropna()
+        return int(reg_years.max()) if len(reg_years) else self.years[-1]
+
+    @property
+    def people(self) -> list[str]:
+        names = set(self.budget.loc[~self.budget["unallocated"], "person"].dropna())
+        names |= set(self.registered["person"].dropna())
+        return sorted(names)
+
+    def second_groups(self) -> dict[str, str]:
+        """People tagged to a second research group, and which one."""
+        tagged = self.budget.dropna(subset=["second_group"])
+        return (
+            tagged.groupby("person")["second_group"]
+            .agg(lambda s: s.mode().iloc[0])
+            .to_dict()
+        )
+
+    # --------------------------------------------------------------- rollups
+
+    def registered_by_category(self, year: int | None = None) -> pd.DataFrame:
+        df = self.registered
+        if year is not None:
+            df = df[df["year"] == year]
+        return (
+            df.pivot_table(index="person", columns="category", values="hours", aggfunc="sum")
+            .reindex(columns=CATEGORY_ORDER)
+            .fillna(0.0)
+        )
+
+    def budget_by_person_project(self, year: int, include_unallocated: bool = True) -> pd.DataFrame:
+        df = self.budget[(self.budget["year"] == year) & (self.budget["category"] == "Project")]
+        if not include_unallocated:
+            df = df[~df["unallocated"]]
+        return df.groupby(["person", "project"], as_index=False)["hours"].sum().query("hours > 0")
+
+    def registered_by_person_project(self, year: int) -> pd.DataFrame:
+        df = self.registered[
+            (self.registered["year"] == year) & (self.registered["category"] == "Project")
+        ]
+        return df.groupby(["person", "project"], as_index=False)["hours"].sum().query("hours > 0")
+
+    def person_summary(self, year: int) -> pd.DataFrame:
+        """One row per person: budget, registration by category, expected-to-date."""
+        budget = (
+            self.budget[(self.budget["year"] == year) & (self.budget["category"] == "Project")]
+            .groupby("person")["hours"]
+            .sum()
+            .rename("project_budget")
+        )
+        cats = self.registered_by_category(year)
+        out = pd.concat([budget, cats], axis=1).fillna(0.0)
+        out = out.drop(index=UNALLOCATED_PERSON, errors="ignore")
+        out["registered_total"] = out[CATEGORY_ORDER].sum(axis=1)
+        frac = self.assumptions.year_fraction(year)
+        out["expected_to_date"] = out["project_budget"] * frac
+        out["variance"] = out["Project"] - out["expected_to_date"]
+        out["capacity"] = self.assumptions.annual_hours
+        out["n_projects"] = (
+            self.budget[
+                (self.budget["year"] == year)
+                & (self.budget["category"] == "Project")
+                & (self.budget["hours"] > 0)
+            ]
+            .groupby("person")["project"]
+            .nunique()
+            .reindex(out.index)
+            .fillna(0)
+            .astype(int)
+        )
+        return out.sort_values("project_budget", ascending=False)
+
+    def project_summary(self) -> pd.DataFrame:
+        """One row per project per year: budget split named/unallocated, plus registration."""
+        b = self.budget[self.budget["category"] == "Project"]
+        named = (
+            b[~b["unallocated"]].groupby(["project", "year"])["hours"].sum().rename("budget_named")
+        )
+        unalloc = (
+            b[b["unallocated"]].groupby(["project", "year"])["hours"].sum()
+            .rename("budget_unallocated")
+        )
+        reg = (
+            self.registered[self.registered["category"] == "Project"]
+            .groupby(["project", "year"])["hours"]
+            .sum()
+            .rename("registered")
+        )
+        out = pd.concat([named, unalloc, reg], axis=1).fillna(0.0).reset_index()
+        pm = b.dropna(subset=["pm"]).groupby("project")["pm"].agg(lambda s: s.mode().iloc[0])
+        out["pm"] = out["project"].map(pm)
+        out["budget_total"] = out["budget_named"] + out["budget_unallocated"]
+        return out
+
+    def project_team(self, project: str) -> pd.DataFrame:
+        """Budgeted hours per person per year for one project."""
+        b = self.budget
+        df = b[(b["project"] == project) & (b["category"] == "Project")]
+        return df.groupby(["person", "year"], as_index=False)["hours"].sum().query("hours > 0")
+
+
+def build_group(raw: RawExport, assumptions: Assumptions | None = None) -> Group:
+    assumptions = assumptions or Assumptions()
+    return Group(
+        budget=tidy_budget(raw),
+        registered=tidy_registered(raw),
+        assumptions=assumptions,
+    )

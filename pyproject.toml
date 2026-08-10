@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cicero-hours"
+version = "0.1.0"
+description = "Turn CICERO time exports into a dashboard of project hours, budgets and allocation"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Ben Sanderson" }]
+dependencies = [
+    "pandas>=2.0",
+    "numpy>=1.24",
+    "plotly>=5.20",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "ruff>=0.4"]
+
+[project.scripts]
+cicero-hours = "cicero_hours.cli:main"
+
+[tool.setuptools]
+packages = ["cicero_hours"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# dashboard.py holds the page's CSS, JS and HTML as string literals, where
+# wrapping to 100 columns would hurt rather than help readability.
+"cicero_hours/dashboard.py" = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
