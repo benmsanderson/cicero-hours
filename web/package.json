@@ -1,0 +1,6 @@
+{
+  "name": "cicero-hours-web",
+  "private": true,
+  "type": "module",
+  "description": "Browser build of the hours dashboard. This nested package.json marks the subtree as ES modules so the top-level package (which hosts the jsdom test as CommonJS) can stay as it is."
+}

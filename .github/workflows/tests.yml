@@ -38,3 +38,22 @@ jobs:
       - run: pip install -e "."
       - run: npm install
       - run: npm run test:board
+
+  cross:
+    # The browser build's loader and model run against the synthetic export
+    # and are asserted key by key against spec/expected.json, so a Python
+    # change that moves a number and a JS change that fails to follow both
+    # break this step. It is the single thing standing between two colleagues
+    # opening the two builds and bringing contradictory numbers to a meeting.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: pip install -e "."
+      - run: npm run test:cross
