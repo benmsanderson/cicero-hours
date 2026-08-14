@@ -24,7 +24,9 @@ jobs:
 
   board:
     # The allocation board is browser code, so it is exercised in a DOM rather
-    # than by pytest: build a dashboard from the synthetic export and drive it.
+    # than by pytest. Same harness drives both the Python dashboard and the
+    # browser build; the runtime is one file (spec/board.js) and the same
+    # assertions cover both.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -38,6 +40,7 @@ jobs:
       - run: pip install -e "."
       - run: npm install
       - run: npm run test:board
+      - run: npm run test:board:web
 
   cross:
     # The browser build's loader and model run against the synthetic export

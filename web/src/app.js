@@ -11,6 +11,7 @@
 
 import { loadExport } from './loader.js';
 import { buildGroup, yearFraction } from './model.js';
+import { boardData, mountBoard } from './board.js';
 import {
   BILLABLE_HOURS_DEFAULT,
   UNALLOCATED_PERSON,
@@ -186,6 +187,9 @@ function decodeBytes(buffer) {
 
 // --------------------------------------------------------- render
 
+// Full render, called once per new file drop. The board is mounted here and
+// deliberately not re-mounted on as-of changes; a proposal in progress
+// survives the user nudging the date.
 function renderDashboard() {
   const g = state.group;
   const year = g.reporting_year;
@@ -203,7 +207,23 @@ function renderDashboard() {
   wrap.appendChild(renderFooter(g));
 
   wireTabs();
-  showTab(TABS[0][0]);
+  showTab(state.currentTab || TABS[0][0]);
+  wireAsOf();
+
+  // Now that the board panel is in the DOM, hand its skeleton to the runtime.
+  mountBoard(document.getElementById('board'), boardData(g));
+}
+
+// Lighter-touch update for as-of changes: re-render header (KPIs update
+// against the new year_fraction) and notes, and leave the tabs, panels and
+// board alone.
+function renderStrip() {
+  const g = state.group;
+  const year = g.reporting_year;
+  const frac = yearFraction(g.assumptions, year);
+  const wrap = document.getElementById('wrap');
+  wrap.querySelector('header').replaceWith(renderHeader(g, year, frac));
+  wrap.querySelector('.notes-block').replaceWith(renderNotes(g, year, frac));
   wireAsOf();
 }
 
@@ -281,9 +301,13 @@ function renderNav(tabs) {
 
 function renderPanel(id, label) {
   const panel = el('div', { class: 'panel', id, role: 'tabpanel' });
-  panel.appendChild(el('div', { class: 'placeholder' },
-    `${label} will populate in a later phase of the port.`,
-  ));
+  // The board panel is populated by mountBoard once the DOM is attached;
+  // the figure panels stay placeholder text until Phase 6 fills them in.
+  if (id !== 'board') {
+    panel.appendChild(el('div', { class: 'placeholder' },
+      `${label} will populate in a later phase of the port.`,
+    ));
+  }
   return panel;
 }
 
@@ -356,6 +380,7 @@ function wireTabs() {
 }
 
 function showTab(id) {
+  state.currentTab = id;
   const tabs = Array.from(document.querySelectorAll('nav button'));
   const panels = Array.from(document.querySelectorAll('.panel'));
   tabs.forEach(t => t.setAttribute('aria-selected', String(t.dataset.target === id)));
@@ -369,11 +394,12 @@ function wireAsOf() {
   input.addEventListener('change', () => {
     if (!input.value) return;
     state.as_of = input.value;
-    // Reuse the same raw parse; only re-tidy and re-render.
+    // Reuse the same raw parse; only re-tidy and re-render the strip. The
+    // board panel is left as it was, so an in-progress proposal survives.
     state.group = buildGroup(state.raw, {
       as_of: state.as_of, billable_hours: BILLABLE_HOURS_DEFAULT,
     });
-    renderDashboard();
+    renderStrip();
   });
 }
 

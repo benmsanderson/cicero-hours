@@ -34,3 +34,4 @@ TABLE_SIGNATURES: list[tuple[str, set[str]]] = [
 
 SHELL_CSS: str = _spec_text("shell.css")
 BOARD_CSS: str = _spec_text("board.css")
+BOARD_JS: str = _spec_text("board.js")
