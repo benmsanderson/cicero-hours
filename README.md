@@ -24,6 +24,19 @@ year is re-sorted and re-scaled on its own terms, and a year still to come says
 that nothing is booked to it yet rather than drawing an empty comparison. Years
 the export budgets nothing to are not offered.
 
+## Open it in a browser
+
+The browser build is published to GitHub Pages on every push to `main`:
+**https://benmsanderson.github.io/cicero-hours/**. Drop your *Timer budsjettert
+og registrert pr. medarbeider* CSV onto the page and it renders.
+
+The data-protection story does not change. The page itself is fetched from
+GitHub, but the CSV is read in your browser by `FileReader` and never touches
+the network; the built HTML makes no outbound requests at runtime. What GitHub
+sees is the page load itself (IP, user agent, referrer), not the file you
+open with it. If that matters, download the file from Actions and email it
+instead.
+
 ## Install
 
 With [uv](https://docs.astral.sh/uv/), into a project virtualenv:
