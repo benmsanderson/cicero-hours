@@ -1,0 +1,53 @@
+/* Additions for the browser build: the empty state, the drop target, the
+   as-of control, and a loading indicator. Everything else is shared with the
+   Python build via spec/shell.css and spec/board.css. */
+
+.empty {
+  padding: 60px 0 40px;
+  max-width: 62ch;
+}
+.empty h1 { margin: 0 0 10px; }
+.empty p { margin: 0 0 14px; color: var(--muted); font-size: 15px; }
+.empty p b { color: var(--ink); font-weight: 600; }
+
+.drop {
+  margin: 22px 0 14px;
+  padding: 34px 24px;
+  border: 2px dashed var(--hairline);
+  background: var(--card);
+  text-align: center;
+  cursor: pointer;
+}
+.drop.hot { border-color: var(--teal); background: #F4F9FA; }
+.drop .pick {
+  appearance: none; font: inherit; font-size: 15px; font-weight: 600;
+  padding: 10px 18px; background: var(--teal); color: #fff;
+  border: 0; cursor: pointer;
+}
+.drop .pick:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.drop .hint { color: var(--muted); font-size: 13.5px; margin: 12px 0 0; }
+.drop .warn { color: var(--alarm); font-size: 13.5px; margin: 10px 0 0; }
+
+.loading {
+  margin: 22px 0; padding: 18px; background: var(--card);
+  border: 1px solid var(--hairline); color: var(--muted);
+  font-size: 14px; text-align: center;
+}
+
+.eyebrow input[type="date"] {
+  font: inherit; font-size: 12px; letter-spacing: normal;
+  text-transform: none; padding: 0 4px; margin: 0 0 0 6px;
+  color: var(--ink); background: transparent;
+  border: 0; border-bottom: 1px dotted var(--hairline);
+}
+.eyebrow input[type="date"]:focus { outline: 0; border-bottom-color: var(--teal); }
+
+.header-warn {
+  margin: 14px 0 0; padding: 10px 14px; background: #FDF6F3;
+  border-left: 3px solid var(--alarm); color: var(--ink); font-size: 13.5px;
+}
+
+.panel .placeholder {
+  padding: 36px 22px; background: var(--card); border: 1px solid var(--hairline);
+  color: var(--muted); font-style: italic;
+}
