@@ -14,6 +14,7 @@ import { buildGroup, yearFraction } from './model.js';
 import { boardData, mountBoard } from './board.js';
 import {
   figGroupCapacity,
+  figMatrix,
   figPersonBudgetStack,
   figPersonBurn,
   figPersonDeepDive,
@@ -341,6 +342,7 @@ const FIGURES_FOR = {
     return [figProjectTotals(g), figProjectTeam(g), figProjectBurn(g, y)];
   },
   deepdive: (g) => [figPersonDeepDive(g, g.reporting_year)],
+  matrix: (g) => [figMatrix(g, g.reporting_year)],
 };
 
 function mountFigures(g) {

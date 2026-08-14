@@ -635,6 +635,69 @@ export function figProjectBurn(group, year, { minHours = 50.0 } = {}) {
   return { traces, layout };
 }
 
+// ---------------------------------------------------------- matrix
+
+// Who is on what: a heatmap of budgeted hours, projects down and people
+// across (there are far more projects than people, and a tall grid stays
+// readable where a wide one does not).
+export function figMatrix(group, year, { minHours = 1.0 } = {}) {
+  const rows = group.budget_by_person_project(year).filter(r => r.hours >= minHours);
+  const people = new Set();
+  const projects = new Set();
+  const perPP = new Map();
+  for (const r of rows) {
+    people.add(r.person);
+    projects.add(r.project);
+    perPP.set(`${r.project}|${r.person}`, r.hours);
+  }
+  const projectTotals = new Map();
+  for (const p of projects) {
+    let s = 0;
+    for (const per of people) s += perPP.get(`${p}|${per}`) ?? 0;
+    projectTotals.set(p, s);
+  }
+  const personTotals = new Map();
+  for (const per of people) {
+    let s = 0;
+    for (const p of projects) s += perPP.get(`${p}|${per}`) ?? 0;
+    personTotals.set(per, s);
+  }
+  // Projects sorted ascending (small at bottom), people sorted descending.
+  const yLabels = [...projects].sort((a, b) => projectTotals.get(a) - projectTotals.get(b));
+  const xLabels = [...people].sort((a, b) => personTotals.get(b) - personTotals.get(a));
+
+  const z = yLabels.map(proj =>
+    xLabels.map(per => perPP.get(`${proj}|${per}`) ?? null),
+  );
+  const text = z.map(row => row.map(v =>
+    v == null ? '' : new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(v),
+  ));
+
+  const traces = [{
+    type: 'heatmap',
+    z, x: xLabels, y: yLabels,
+    text, texttemplate: '%{text}', textfont: { size: 10 },
+    colorscale: [[0, '#F2F6F7'], [0.25, '#BBD3D8'], [0.6, '#4E8794'], [1, '#173F47']],
+    hovertemplate: '%{x}<br>%{y}: %{z:,.0f} h<extra></extra>',
+    colorbar: { title: { text: 'hours' }, thickness: 12, len: 0.4, y: 1, yanchor: 'top' },
+    xgap: 2, ygap: 2,
+  }];
+
+  const height = Math.max(560, 22 * yLabels.length + 220);
+  const layout = {
+    ...baseLayout(
+      `Who is on what, ${year}`,
+      'Budgeted hours. Reading down a column shows one person\'s spread; ' +
+      'reading across a row shows a project\'s team.',
+      height,
+    ),
+    margin: { l: 10, r: 20, t: 210, b: 30 },
+  };
+  layout.xaxis = { ...layout.xaxis, tickangle: -90, side: 'top', showgrid: false };
+  layout.yaxis = { ...layout.yaxis, showgrid: false, tickfont: { size: 11 } };
+  return { traces, layout };
+}
+
 // -------------------------------------------------------- one researcher
 
 function restHeading(mine, year) {

@@ -7,7 +7,8 @@
     "test:board": "python3 tests/build_fixture_dashboard.py /tmp/fixture.html && node tests/board_check.js /tmp/fixture.html",
     "test:board:web": "node web/build.js --out=/tmp/cicero_shell.html && python3 -c \"from tests.synthetic import write_export; from pathlib import Path; write_export(Path('/tmp/cicero_synth.csv'))\" && node tests/board_check.js /tmp/cicero_shell.html /tmp/cicero_synth.csv",
     "test:cross": "python3 -c \"from tests.synthetic import write_export; from pathlib import Path; write_export(Path('/tmp/cicero_synth.csv'))\" && node tests/cross_check.js /tmp/cicero_synth.csv",
-    "test:shell": "node web/build.js --out=/tmp/cicero_shell.html && python3 -c \"from tests.synthetic import write_export; from pathlib import Path; write_export(Path('/tmp/cicero_synth.csv'))\" && node tests/shell_check.js /tmp/cicero_shell.html /tmp/cicero_synth.csv"
+    "test:shell": "node web/build.js --out=/tmp/cicero_shell.html && python3 -c \"from tests.synthetic import write_export; from pathlib import Path; write_export(Path('/tmp/cicero_synth.csv'))\" && node tests/shell_check.js /tmp/cicero_shell.html /tmp/cicero_synth.csv",
+    "test:size": "node web/build.js --out=/tmp/cicero_shell.html && node tests/size_check.js /tmp/cicero_shell.html"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",

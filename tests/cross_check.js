@@ -120,6 +120,7 @@ function snapshotFigures(g, figures) {
     fig_project_team: figureSnapshot(figures.figProjectTeam(g)),
     fig_project_burn: figureSnapshot(figures.figProjectBurn(g, year)),
     fig_person_deep_dive: figureSnapshot(figures.figPersonDeepDive(g, year)),
+    fig_matrix: figureSnapshot(figures.figMatrix(g, year)),
   };
 }
 
@@ -131,6 +132,15 @@ function figureSnapshot({ traces, layout }) {
     }
     for (const k of ['x', 'y']) {
       if (k in t) rec[k] = t[k] === null ? null : Array.from(t[k]);
+    }
+    if ('z' in t) {
+      const z = t.z;
+      if (z === null || z === undefined) rec.z = null;
+      else if (Array.isArray(z) && z.length && Array.isArray(z[0])) {
+        rec.z = z.map(row => Array.from(row));
+      } else {
+        rec.z = Array.from(z);
+      }
     }
     if (t.marker && typeof t.marker === 'object') {
       const m = {};

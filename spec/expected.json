@@ -222,6 +222,39 @@
         }
       ]
     },
+    "fig_matrix": {
+      "layout": {
+        "annotation_texts": [],
+        "barmode": null,
+        "height": 560,
+        "shape_count": 0
+      },
+      "menus": [],
+      "traces": [
+        {
+          "name": null,
+          "type": "heatmap",
+          "x": [
+            "Ada Lovelace",
+            "Grace Hopper"
+          ],
+          "y": [
+            "BETA",
+            "ALPHA"
+          ],
+          "z": [
+            [
+              null,
+              500.0
+            ],
+            [
+              800.0,
+              null
+            ]
+          ]
+        }
+      ]
+    },
     "fig_person_budget_stack": {
       "layout": {
         "annotation_texts": [

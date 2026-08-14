@@ -87,10 +87,16 @@ def _records(df: pd.DataFrame) -> list[dict]:
 
 def _decode_array(v):
     """Plotly's to_dict() encodes numpy arrays as {'dtype': 'f8', 'bdata': ...}
-    (base64 of the raw bytes). Turn that back into a plain list so the
-    JavaScript output can be compared to it row for row."""
+    (base64 of the raw bytes, optionally with a 'shape' for 2D). Turn that
+    back into a plain list (or list of lists) so the JavaScript output can be
+    compared to it row for row."""
     if isinstance(v, dict) and "bdata" in v and "dtype" in v:
-        return list(np.frombuffer(base64.b64decode(v["bdata"]), dtype=v["dtype"]))
+        flat = np.frombuffer(base64.b64decode(v["bdata"]), dtype=v["dtype"])
+        shape = v.get("shape")
+        if shape:
+            dims = [int(s) for s in str(shape).split(",")]
+            return flat.reshape(dims).tolist()
+        return flat.tolist()
     return v
 
 
@@ -117,6 +123,15 @@ def _figure_snapshot(fig) -> dict:
             if k in t:
                 decoded = _decode_array(t[k])
                 rec[k] = None if decoded is None else [_jsonable(v) for v in decoded]
+        # Heatmap: z is a 2D numeric grid (NaN for empty cells).
+        if "z" in t:
+            decoded = _decode_array(t["z"])
+            if decoded is None:
+                rec["z"] = None
+            elif decoded and isinstance(decoded[0], list):
+                rec["z"] = [[_jsonable(v) for v in row] for row in decoded]
+            else:
+                rec["z"] = [_jsonable(v) for v in decoded]
         # Hatched (unallocated) marker segments matter for reading the bar; the
         # colour value is stable per-project and worth pinning too.
         marker = t.get("marker") or {}
@@ -183,6 +198,8 @@ def _snapshot_figures(g: Group, year: int) -> dict:
         "fig_project_burn": _figure_snapshot(F.fig_project_burn(g, year)),
         # One researcher tab
         "fig_person_deep_dive": _figure_snapshot(F.fig_person_deep_dive(g, year)),
+        # Who is on what tab
+        "fig_matrix": _figure_snapshot(F.fig_matrix(g, year)),
     }
 
 

@@ -64,8 +64,9 @@ jobs:
 
   shell:
     # Builds the browser bundle and drives it in jsdom: drops the synthetic
-    # export into the page and checks the KPIs and tab machinery. Catches
-    # the class of bugs that only show up once the wiring meets the DOM.
+    # export into the page and checks the KPIs and tab machinery. Also enforces
+    # the size budget on the built file, so the browser build cannot silently
+    # grow past what email attachments accept.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -79,3 +80,4 @@ jobs:
       - run: pip install -e "."
       - run: npm install
       - run: npm run test:shell
+      - run: npm run test:size
