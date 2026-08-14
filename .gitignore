@@ -1,9 +1,12 @@
 # Staff time data is personal data. Nothing from the finance export belongs in
-# version control, and neither does a rendered dashboard, which embeds it.
+# version control, and neither does a rendered dashboard, which embeds it, nor a
+# saved allocation plan, which names who is being asked to do what.
 *.csv
 *.xlsx
 data/
 *_dashboard.html
+*_plan.txt
+allocation_plan*.txt
 out/
 
 node_modules/

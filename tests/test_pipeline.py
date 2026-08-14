@@ -4,6 +4,7 @@ import datetime as dt
 
 import pytest
 
+from cicero_hours import figures as F
 from cicero_hours.board import board_data, board_html
 from cicero_hours.dashboard import build_dashboard
 from cicero_hours.loader import load_export
@@ -55,8 +56,8 @@ def test_registered_rows_collapse_across_activity_codes(group):
 def test_time_splits_into_project_internal_and_absence(group):
     by_cat = group.registered.groupby("category")["hours"].sum()
     assert by_cat["Project"] == pytest.approx(600.0)
-    assert by_cat["Internal"] == pytest.approx(150.0)
-    assert by_cat["Absence"] == pytest.approx(187.5)
+    assert by_cat["Internal"] == pytest.approx(210.0)
+    assert by_cat["Absence"] == pytest.approx(210.0)
 
 
 def test_budget_covers_project_accounts_only(group):
@@ -156,6 +157,115 @@ def test_project_team_spans_years(group):
     team = group.project_team("ALPHA")
     assert set(team["person"]) == {"Ada Lovelace", "Forsker Climate Mitigation"}
     assert set(team["year"]) == {2026, 2027}
+
+
+# ------------------------------------------------------------------- figures
+
+
+def _menu(fig):
+    return fig.layout.updatemenus[0]
+
+
+@pytest.mark.parametrize("build", [F.fig_person_budget_stack, F.fig_person_burn])
+def test_people_figures_offer_every_year_with_hours(group, build):
+    fig = build(group, 2026)
+    assert [b["label"] for b in _menu(fig).buttons] == ["2026", "2027"], (
+        "2028 budgets nothing and has nothing booked, so it is not offered"
+    )
+
+
+@pytest.mark.parametrize("build", [F.fig_person_budget_stack, F.fig_person_burn])
+def test_each_trace_belongs_to_exactly_one_year(group, build):
+    fig = build(group, 2026)
+    masks = [b["args"][0]["visible"] for b in _menu(fig).buttons]
+    assert all(len(m) == len(fig.data) for m in masks)
+    assert [sum(t) for t in zip(*masks, strict=True)] == [1] * len(fig.data)
+
+
+@pytest.mark.parametrize("build", [F.fig_person_budget_stack, F.fig_person_burn])
+def test_the_year_on_show_is_the_year_the_picker_names(group, build):
+    fig = build(group, group.reporting_year)
+    menu = _menu(fig)
+    assert menu.buttons[menu.active]["label"] == str(group.reporting_year)
+    assert [t.visible for t in fig.data] == list(menu.buttons[menu.active]["args"][0]["visible"])
+
+
+def test_switching_year_re_sorts_the_people(group):
+    fig = F.fig_person_budget_stack(group, 2026)
+    later = next(b for b in _menu(fig).buttons if b["label"] == "2027")
+    assert "2027" in later["args"][1]["title.text"]
+    assert list(later["args"][1]["yaxis.categoryarray"]) == [
+        "Ada Lovelace", "Forsker Climate Mitigation",
+    ], "smallest first, so the biggest commitment is at the top of the chart"
+
+
+def test_burn_says_so_when_a_year_has_not_started(group):
+    fig = F.fig_person_burn(group, 2026)
+    later = next(b for b in _menu(fig).buttons if b["label"] == "2027")
+    assert "Nothing is booked to 2027 yet" in later["args"][1]["title.text"]
+    assert "50% of 2026's working year" in fig.layout.title.text, "as_of is 2 July"
+
+
+# ------------------------------------------------- internal time and absence
+
+
+def test_nonproject_time_splits_by_task(group):
+    rest = group.nonproject_by_person_task(2026)
+    assert set(rest["person"]) == {"Grace Hopper"}, "Ada books none of this"
+    assert dict(zip(rest["task"], rest["hours"], strict=True)) == {
+        "92 - Ferie": pytest.approx(187.5),
+        "11 - Drift/Operations": pytest.approx(150.0),
+        "11-2 - Prosjektutv. & akkv. Bidragsforskning/Project Development and Acquisition"
+        " - Research funding": pytest.approx(60.0),
+        "90 - Syk, Egenmelding/Sick Leave (Self-Certified)": pytest.approx(22.5),
+    }
+    assert set(rest["category"]) == {"Internal", "Absence"}
+
+
+@pytest.mark.parametrize(
+    "raw, label",
+    [
+        ("92 - Ferie/Vacation", "Vacation"),
+        ("92 - Ferie", "Ferie"),
+        ("90 - Syk, Egenmelding/Sick Leave (Self-Certified)", "Sick Leave (Self-Certified)"),
+        ("11-10 - Vitenskapelig datastøtte", "Vitenskapelig datastøtte"),
+        # The English half of this one carries a dash of its own.
+        ("11-2 - Prosjektutv./Project Development - Research funding",
+         "Project Development - Research funding"),
+        (None, "Unspecified"),
+        ("", "Unspecified"),
+    ],
+)
+def test_task_labels_lose_the_code_and_keep_the_english(raw, label):
+    assert F._task_label(raw) == label
+
+
+def test_deep_dive_shows_the_rest_of_the_year_by_task(group):
+    fig = F.fig_person_deep_dive(group, 2026)
+    grace = next(b for b in _menu(fig).buttons if b["label"] == "Grace Hopper")
+    heading = grace["args"][1]["annotations[2].text"]
+    assert "210 h absence" in heading and "210 h internal" in heading
+    assert list(grace["args"][1]["yaxis3.categoryarray"]) == [
+        "Sick Leave (Self-Certified)", "Project Development and Acquisition - Research funding",
+        "Operations", "Ferie",
+    ], "smallest first, so the biggest slice of the year is at the top"
+
+    visible = grace["args"][0]["visible"]
+    panel = [t for t, on in zip(fig.data, visible, strict=True)
+             if on and getattr(t, "xaxis", None) == "x3"]
+    assert [t.name for t in panel] == ["Internal", "Absence"]
+    assert sum(sum(t.x) for t in panel) == pytest.approx(420.0)
+
+
+def test_deep_dive_says_when_someone_books_nothing_off_projects(group):
+    fig = F.fig_person_deep_dive(group, 2026)
+    ada = next(b for b in _menu(fig).buttons if b["label"] == "Ada Lovelace")
+    assert ada["args"][1]["annotations[2].text"] == (
+        "The rest of 2026: nothing booked outside projects"
+    )
+    assert list(ada["args"][1]["yaxis3.categoryarray"]) == []
+    assert ada["args"][1]["xaxis3.visible"] is False, "no empty grid where there is no data"
+    assert fig.layout.xaxis3.visible is False, "and none on the person it opens on"
 
 
 # ----------------------------------------------------------------- dashboard

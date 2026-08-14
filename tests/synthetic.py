@@ -39,12 +39,23 @@ REGISTERED = [
     '"RESEARCH 1","Grace Hopper","31002 - BETA","DEF","Grace Hopper","10 - Tid","10",'
     '"1000","31002","Beta project","2026","200","200","300000","0","0","G04",'
     '"Utslippsreduksjon / Climate Mitigation","G06","Atmosfæreforskning / Atmospheric Sciences"',
-    # Internal time and absence, which the budget table does not cover.
+    # Internal time and absence, which the budget table does not cover. Several
+    # tasks each, since the task is the only detail the export gives about time
+    # spent off projects. One task carries no English half, one carries a name
+    # with its own ' - ' in it, and Ada books none of this at all.
     '"RESEARCH 1","Grace Hopper","10506 - CICERO-tid Research 1","KÅM","Kårstein Måseide",'
     '"11 - Drift/Operations","11","9000","10506","CICERO-tid Research 1","2026","150","150",'
     '"0","0","0","G04","Utslippsreduksjon / Climate Mitigation","",""',
+    '"RESEARCH 1","Grace Hopper","10506 - CICERO-tid Research 1","KÅM","Kårstein Måseide",'
+    '"11-2 - Prosjektutv. & akkv. Bidragsforskning/Project Development and Acquisition '
+    '- Research funding","11","9002","10506","CICERO-tid Research 1","2026","60","60",'
+    '"0","0","0","G04","Utslippsreduksjon / Climate Mitigation","",""',
     '"RESEARCH 1","Grace Hopper","10503 - Fravær","KÅM","Kårstein Måseide","92 - Ferie",'
     '"92","9050","10503","Fravær","2026","187.5","187.5","0","0","0","G04",'
+    '"Utslippsreduksjon / Climate Mitigation","",""',
+    '"RESEARCH 1","Grace Hopper","10503 - Fravær","KÅM","Kårstein Måseide",'
+    '"90 - Syk, Egenmelding/Sick Leave (Self-Certified)","90","9051","10503","Fravær",'
+    '"2026","22.5","22.5","0","0","0","G04",'
     '"Utslippsreduksjon / Climate Mitigation","",""',
     # Central staff: appears in the export but carries no group tag, so is not ours.
     '"DIRECTOR","Alan Turing","10501 - CICERO-tid Direktør","KÅM","Kårstein Måseide",'

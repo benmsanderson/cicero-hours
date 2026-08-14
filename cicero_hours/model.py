@@ -189,6 +189,24 @@ class Group:
         ]
         return df.groupby(["person", "project"], as_index=False)["hours"].sum().query("hours > 0")
 
+    def nonproject_by_person_task(self, year: int) -> pd.DataFrame:
+        """Internal time and absence for one year, split by the task booked to.
+
+        The task is the only detail the export carries about time spent off
+        projects, and it is a good deal: which kind of internal work, and which
+        kind of leave. Rows with no task are kept rather than dropped, since the
+        hours are real either way.
+        """
+        df = self.registered[
+            (self.registered["year"] == year) & (self.registered["category"] != "Project")
+        ]
+        out = (
+            df.groupby(["person", "category", "task"], dropna=False, as_index=False)["hours"]
+            .sum()
+            .query("hours > 0")
+        )
+        return out.sort_values("hours", ascending=False).reset_index(drop=True)
+
     def person_summary(self, year: int) -> pd.DataFrame:
         """One row per person: budget, registration by category, expected-to-date."""
         budget = (

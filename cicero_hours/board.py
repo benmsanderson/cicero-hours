@@ -12,17 +12,29 @@ The billing standard is drawn as a guide, not a limit. Researchers legitimately
 bill above and below it, so each card also carries that person's own current
 rate, and passing the guide is shaded rather than alarmed.
 
+A stacked bar of the proposal sits above the cards, the same shape as "Hours
+budgeted per person" on the People tab but drawn from the board's own state, so
+the effect of a move on the whole group is visible while it is being made.
+
 This is a planning aid for group meetings, not a system of record. Nothing is
 written back to the finance system: the board holds a proposal in memory and
 exports it as CSV or as text to paste into meeting notes. Refreshing the page
 clears it, which is deliberate, because a half-remembered browser state is worse
 than none when the numbers matter.
+
+A reallocation rarely finishes in one sitting, though, so the board can also
+write the proposal to a text file the user names once and the page then keeps up
+to date. Opening that file in a later session restores the plan. The readable
+part of the file is the plan itself; the last line is the state the board reloads
+from. A browser cannot choose where that file goes, so the save dialogue suggests
+a name next to the dashboard and the user picks the folder.
 """
 
 from __future__ import annotations
 
 import json
 
+from .figures import project_colours
 from .model import UNALLOCATED_PERSON, Group
 
 BOARD_CSS = """
@@ -41,6 +53,23 @@ BOARD_CSS = """
 .btn:hover { border-color: var(--teal); }
 .btn:disabled { opacity: .45; cursor: default; border-color: var(--hairline); }
 .btn:focus-visible, .seg button:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+
+.filerow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px;
+           padding: 9px 12px; background: var(--card); border: 1px solid var(--hairline); }
+.filerow .status { font-size: 12.5px; color: var(--muted); }
+.filerow .warn { flex-basis: 100%; font-size: 12.5px; color: #9A6B15; }
+.filerow .warn:empty { display: none; }
+
+.board-chart { background: var(--card); border: 1px solid var(--hairline);
+               padding: 11px 13px 6px; margin-bottom: 16px; }
+.board-chart .head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.board-chart .head .spacer { flex: 1; }
+.board-chart h3 { margin: 0 6px 0 0; font-size: 14px; font-weight: 650; }
+.board-chart label { font-size: 12.5px; color: var(--muted); }
+.board-chart select { font: inherit; font-size: 13px; padding: 5px 7px; color: var(--ink);
+                      background: var(--card); border: 1px solid var(--hairline); }
+.board-chart .plot { margin-top: 4px; }
+.board-chart.hidden .plot { display: none; }
 
 .board-grid { display: grid; grid-template-columns: 302px 1fr; gap: 18px; align-items: start; }
 @media (max-width: 900px) { .board-grid { grid-template-columns: 1fr; } }
@@ -150,11 +179,15 @@ BOARD_JS = """
   const signed = n => (n > 0 ? '+' : '\\u2212') + fmt(Math.abs(n));
   const el = id => document.getElementById(id);
 
+  // The year argument defaults to the year the board is showing; the plan file
+  // and the chart pass one explicitly, because both look across all years.
   function people() { return DATA.people.concat(extraPeople); }
-  function forYear() { return blocks.filter(b => b.year === year); }
-  function ownedBy(person) { return forYear().filter(b => b.owner === person); }
-  function total(person) { return ownedBy(person).reduce((s, b) => s + b.hours, 0); }
-  function baseline(person) { return (DATA.baseline[person] || {})[year] || 0; }
+  function forYear(y) { return blocks.filter(b => b.year === (y === undefined ? year : y)); }
+  function ownedBy(person, y) { return forYear(y).filter(b => b.owner === person); }
+  function total(person, y) { return ownedBy(person, y).reduce((s, b) => s + b.hours, 0); }
+  function baseline(person, y) {
+    return (DATA.baseline[person] || {})[y === undefined ? year : y] || 0;
+  }
 
   function push() {
     history.push({ blocks: clone(blocks), extra: extraPeople.slice() });
@@ -413,17 +446,25 @@ BOARD_JS = """
 
     const box = el('plan-text');
     if (box.style.display === 'block') box.value = planText();
+
+    const ysel = el('chart-year');
+    if (ysel) ysel.options[0].textContent = 'Board year (' + year + ')';
+    drawChart();
+    scheduleSave();
   }
 
-  function changedPeople() {
+  function changedPeople(y) {
+    if (y === undefined) y = year;
     const rows = [];
     people().forEach(p => {
-      const d = total(p) - baseline(p);
-      if (Math.round(d) !== 0) rows.push({ person: p, was: baseline(p), now: total(p), delta: d });
+      const d = total(p, y) - baseline(p, y);
+      if (Math.round(d) !== 0) {
+        rows.push({ person: p, was: baseline(p, y), now: total(p, y), delta: d });
+      }
     });
-    const poolNow = forYear().filter(b => b.owner === null).reduce((s, b) => s + b.hours, 0);
+    const poolNow = forYear(y).filter(b => b.owner === null).reduce((s, b) => s + b.hours, 0);
     const poolWas = DATA.blocks
-      .filter(b => b.year === year && b.origin === null)
+      .filter(b => b.year === y && b.origin === null)
       .reduce((s, b) => s + b.hours, 0);
     if (Math.round(poolNow - poolWas) !== 0) {
       rows.push({ person: 'Unassigned', was: poolWas, now: poolNow, delta: poolNow - poolWas });
@@ -473,29 +514,207 @@ BOARD_JS = """
       '</tbody></table>';
   }
 
-  function planText() {
-    const changed = changedPeople();
-    const lines = ['Proposed reallocation, ' + year,
-                   '', 'Change by person', 'person\\twas\\tnow\\tchange'];
-    changed.forEach(r =>
+  // -------------------------------------------------------------------- chart
+  // The same shape as "Hours budgeted per person" on the People tab, but drawn
+  // from the proposal rather than the export and redrawn on every move, so what
+  // a reallocation does to the group is visible while it is being made.
+
+  const POOL_ROW = 'Unassigned';
+  const CHART_TOP_N = 6;
+  const ROLLUP_COLOUR = '#B9C2C9';
+  const CHART_CONFIG = { displaylogo: false, responsive: true,
+                         modeBarButtonsToRemove: ['select2d', 'lasso2d', 'autoScale2d'] };
+  const CHART_FONT = { family: '"Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+                       size: 13, color: '#12181F' };
+
+  function shorten(s, w) { return s.length <= w ? s : s.slice(0, w - 1) + '\\u2026'; }
+
+  function chartYears() {
+    const sel = el('chart-year');
+    const v = sel ? sel.value : 'follow';
+    if (v === 'all') return DATA.years.slice();
+    if (v === 'follow' || !DATA.years.includes(Number(v))) return [year];
+    return [Number(v)];
+  }
+
+  // person -> project -> proposed hours, with the pool as a row of its own so
+  // the chart shows it draining as blocks are placed.
+  function chartRows(years) {
+    const rows = new Map([[POOL_ROW, new Map()]]);
+    people().forEach(p => rows.set(p, new Map()));
+    blocks.forEach(b => {
+      if (!years.includes(b.year)) return;
+      const key = b.owner === null ? POOL_ROW : b.owner;
+      if (!rows.has(key)) rows.set(key, new Map());
+      const m = rows.get(key);
+      m.set(b.project, (m.get(b.project) || 0) + b.hours);
+    });
+    // Largest few projects each and the rest pooled, as the People tab does: a
+    // dozen slivers in one bar cannot be read at this height.
+    rows.forEach((m, person) => {
+      const sorted = Array.from(m).sort((a, b) => b[1] - a[1]);
+      if (sorted.length <= CHART_TOP_N + 1) return;
+      const tail = sorted.slice(CHART_TOP_N);
+      rows.set(person, new Map(sorted.slice(0, CHART_TOP_N).concat(
+        [['Other (' + tail.length + ')', tail.reduce((s, e) => s + e[1], 0)]])));
+    });
+    return rows;
+  }
+
+  function baselineFor(person, years) {
+    return DATA.blocks
+      .filter(b => years.includes(b.oyear) &&
+                   (person === POOL_ROW ? b.origin === null : b.origin === person))
+      .reduce((s, b) => s + b.hours, 0);
+  }
+
+  function chartFigure() {
+    const years = chartYears();
+    const rows = chartRows(years);
+    const now = new Map(), was = new Map();
+    rows.forEach((m, p) => {
+      now.set(p, Array.from(m.values()).reduce((s, v) => s + v, 0));
+      was.set(p, baselineFor(p, years));
+    });
+    // Someone emptied by the proposal still belongs on the chart; that is the
+    // change worth seeing. The pool stays even at zero, which is the good case.
+    const order = Array.from(rows.keys())
+      .filter(p => p === POOL_ROW || now.get(p) > 0 || was.get(p) > 0)
+      .sort((a, b) => (a === POOL_ROW ? -1 : b === POOL_ROW ? 1
+                       : Math.max(now.get(a), was.get(a)) - Math.max(now.get(b), was.get(b))));
+    const sel = el('chart-view');
+    const view = sel ? sel.value : 'projects';
+    return {
+      view: view, years: years, order: order, now: now, was: was,
+      traces: view === 'baseline' ? baselineTraces(order, was, now) : projectTraces(order, rows),
+    };
+  }
+
+  function projectTraces(order, rows) {
+    const totals = new Map();
+    rows.forEach(m => m.forEach((h, proj) => totals.set(proj, (totals.get(proj) || 0) + h)));
+    const hatch = order.map(p => (p === POOL_ROW ? '/' : ''));
+    return Array.from(totals.keys())
+      .sort((a, b) => totals.get(b) - totals.get(a))
+      .map(proj => {
+        const rollup = proj.indexOf('Other (') === 0;
+        const colour = rollup ? ROLLUP_COLOUR : (DATA.project_colour[proj] || '#8899A6');
+        return {
+          type: 'bar', orientation: 'h', name: proj, y: order,
+          x: order.map(p => rows.get(p).get(proj) || 0),
+          // bgcolor has to be given: a per-point shape array does not inherit
+          // marker.color the way a single shape does, and the pool row would
+          // otherwise be drawn white on white.
+          marker: { color: colour,
+                    pattern: { shape: hatch, bgcolor: colour, fgcolor: '#FFFFFF', size: 6 } },
+          text: order.map(() => shorten(proj, 22)),
+          textposition: 'inside', insidetextanchor: 'middle', textangle: 0,
+          constraintext: 'inside', showlegend: false,
+          insidetextfont: { color: rollup ? '#12181F' : '#FFFFFF', size: 11 },
+          hovertemplate: '%{y}<br>' + proj + ': %{x:,.0f} h<extra></extra>',
+        };
+      });
+  }
+
+  function baselineTraces(order, was, now) {
+    return [
+      { type: 'bar', orientation: 'h', name: 'Budgeted', y: order,
+        x: order.map(p => was.get(p)), marker: { color: '#A9B7C2' },
+        hovertemplate: '%{y}<br>budgeted: %{x:,.0f} h<extra></extra>' },
+      { type: 'bar', orientation: 'h', name: 'Proposed', y: order,
+        x: order.map(p => now.get(p)), marker: { color: '#1F5F6B' },
+        hovertemplate: '%{y}<br>proposed: %{x:,.0f} h<extra></extra>' },
+    ];
+  }
+
+  function chartLayout(f) {
+    // Over several years the guide is that many billing years, so the rule
+    // still means the same thing: hours to the right of it are over the standard.
+    const cap = guide * f.years.length;
+    const span = f.years.length > 1
+      ? f.years[0] + '\\u2013' + f.years[f.years.length - 1]
+      : String(f.years[0]);
+    const sub = f.view === 'baseline'
+      ? 'Where the budget put the hours, against where this proposal puts them.'
+      : 'Largest ' + CHART_TOP_N + ' projects each, the rest pooled in grey. The hatched ' +
+        'row is hours still waiting for a name.';
+    return {
+      barmode: f.view === 'baseline' ? 'group' : 'stack',
+      font: CHART_FONT,
+      height: Math.max(320, 30 * f.order.length + 150),
+      margin: { l: 10, r: 20, t: 74, b: 44 },
+      paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+      hoverlabel: { font_size: 12 },
+      uniformtext: { mode: 'hide', minsize: 9 },
+      showlegend: f.view === 'baseline',
+      legend: { orientation: 'h', yanchor: 'bottom', y: 1.0, xanchor: 'right', x: 1,
+                font: { size: 11 }, bgcolor: 'rgba(0,0,0,0)' },
+      title: { text: '<b>Proposed hours per person, ' + span + '</b><br>' +
+                     '<span style="font-size:12px;color:#6A7683">' + sub + '</span>',
+               x: 0, xanchor: 'left', font: { size: 16 } },
+      xaxis: { title: { text: 'hours' }, gridcolor: '#D3D9DE', zerolinecolor: '#D3D9DE',
+               linecolor: '#D3D9DE' },
+      yaxis: { type: 'category', categoryorder: 'array', categoryarray: f.order,
+               gridcolor: '#D3D9DE', zerolinecolor: '#D3D9DE', linecolor: '#D3D9DE',
+               tickfont: { size: 11 }, automargin: true },
+      shapes: [
+        { type: 'rect', xref: 'x', yref: 'paper', x0: cap, x1: cap * 2.2, y0: 0, y1: 1,
+          fillcolor: 'rgba(199, 90, 60, 0.07)', line: { width: 0 }, layer: 'below' },
+        { type: 'line', xref: 'x', yref: 'paper', x0: cap, x1: cap, y0: 0, y1: 1,
+          line: { color: '#C75A3C', width: 1.4, dash: 'dot' } },
+      ],
+      annotations: [
+        { x: cap, y: 1, xref: 'x', yref: 'paper', showarrow: false,
+          xanchor: 'left', yanchor: 'bottom', font: { size: 11, color: '#C75A3C' },
+          text: fmt(cap) + ' h' + (f.years.length > 1
+            ? ' \\u00b7 ' + f.years.length + ' years at the standard' : ' billing standard') },
+      ],
+    };
+  }
+
+  function drawChart() {
+    const node = el('board-chart-plot');
+    if (!node || typeof Plotly === 'undefined') return;
+    if (el('board-chart').classList.contains('hidden')) return;
+    const f = chartFigure();
+    Plotly.react(node, f.traces, chartLayout(f), CHART_CONFIG);
+  }
+
+  // --------------------------------------------------------------- exports
+
+  function changeLines(y) {
+    const rows = changedPeople(y);
+    const lines = ['Change by person, ' + y, 'person\\twas\\tnow\\tchange'];
+    if (!rows.length) lines.push('(nothing moved)');
+    rows.forEach(r =>
       lines.push([r.person, Math.round(r.was), Math.round(r.now), signed(r.delta)].join('\\t')));
-    if (!changed.length) lines.push('(nothing moved)');
+    return lines;
+  }
 
-    const defers = deferrals();
-    lines.push('', 'Deferred to a later year (needs NFR approval)',
-               'project\\thours\\tfrom\\tto\\theld by');
-    if (!defers.length) lines.push('(none)');
-    defers.forEach(r => lines.push([r.project, Math.round(r.hours), r.from, r.to,
-                                    r.owner].join('\\t')));
+  function deferralLines() {
+    const rows = deferrals();
+    const lines = ['Deferred to a later year (needs NFR approval)',
+                   'project\\thours\\tfrom\\tto\\theld by'];
+    if (!rows.length) lines.push('(none)');
+    rows.forEach(r => lines.push([r.project, Math.round(r.hours), r.from, r.to,
+                                  r.owner].join('\\t')));
+    return lines;
+  }
 
-    lines.push('', 'Blocks',
-               'project\\thours\\tbudget year\\tnow in\\toriginally\\tnow');
+  function blockLines() {
+    const lines = ['Blocks', 'project\\thours\\tbudget year\\tnow in\\toriginally\\tnow'];
     blocks.slice()
       .sort((a, b) => a.project.localeCompare(b.project) || a.year - b.year)
       .forEach(b => lines.push([b.project, Math.round(b.hours), b.oyear, b.year,
                                 b.origin || 'unassigned',
                                 b.owner || 'unassigned'].join('\\t')));
-    return lines.join('\\n');
+    return lines;
+  }
+
+  function planText() {
+    return ['Proposed reallocation, ' + year, '']
+      .concat(changeLines(year), [''], deferralLines(), [''], blockLines())
+      .join('\\n');
   }
 
   function csvText() {
@@ -509,6 +728,124 @@ BOARD_JS = """
     return rows
       .map(r => r.map(v => /[",]/.test(String(v)) ? '"' + v + '"' : v).join(','))
       .join('\\n');
+  }
+
+  function download(name, text, type) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type: type }));
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  // ----------------------------------------------------------- the plan file
+  // A reallocation rarely finishes in one sitting. The user names a file once,
+  // the page keeps it up to date from then on, and opening it in a later
+  // session picks the proposal up where it was left. Everything above the
+  // marker is for people to read; the line below it is what the board reloads.
+
+  const STATE_MARKER = '# board state \\u2014 keep this line and the one after it';
+  const canWriteFiles = typeof window.showSaveFilePicker === 'function' &&
+                        typeof window.showOpenFilePicker === 'function';
+  const FILE_TYPES = [{ description: 'Allocation plan', accept: { 'text/plain': ['.txt'] } }];
+  let planFile = null;
+  let saveTimer = null;
+  let savedSignature = null;
+
+  function status(msg) { const s = el('board-save-status'); if (s) s.textContent = msg; }
+  function warn(msg) { const w = el('board-save-warn'); if (w) w.textContent = msg || ''; }
+  function stamp() { return new Date().toISOString().slice(0, 16).replace('T', ' '); }
+
+  function planFileText() {
+    const head = [
+      'CICERO hours \\u00b7 proposed reallocation',
+      'Saved ' + stamp() + ' UTC \\u00b7 guide ' + fmt(guide) + ' h per full-time year ' +
+        '\\u00b7 export ' + DATA.fingerprint,
+      'Open the allocation board in the dashboard and use "Open plan file" to carry on.',
+    ];
+    const moved = DATA.years.filter(y => changedPeople(y).length);
+    let lines = head;
+    moved.forEach(y => { lines = lines.concat([''], changeLines(y)); });
+    if (!moved.length) lines = lines.concat(['', 'Nothing has been moved yet.']);
+    lines = lines.concat([''], deferralLines(), [''], blockLines());
+    lines = lines.concat(['', STATE_MARKER, JSON.stringify({
+      v: 1,
+      saved: new Date().toISOString(),
+      fingerprint: DATA.fingerprint,
+      year: year,
+      extra_people: extraPeople.slice(),
+      blocks: blocks,
+    })]);
+    return lines.join('\\n') + '\\n';
+  }
+
+  function parsePlanFile(text) {
+    const at = text.indexOf(STATE_MARKER);
+    if (at < 0) throw new Error('no board state in that file');
+    const state = JSON.parse(text.slice(at + STATE_MARKER.length));
+    if (!state || !Array.isArray(state.blocks) || !state.blocks.length) {
+      throw new Error('that file carries no blocks');
+    }
+    return state;
+  }
+
+  // Returns a warning to show, or '' if the file matches the export in the page.
+  function applyPlan(state) {
+    push();
+    blocks = state.blocks.map((b, i) => ({
+      id: String(b.id === undefined ? 'loaded/' + i : b.id),
+      project: String(b.project),
+      year: Number(b.year),
+      oyear: Number(b.oyear),
+      hours: Number(b.hours),
+      pm: b.pm === undefined ? null : b.pm,
+      owner: b.owner === undefined ? null : b.owner,
+      origin: b.origin === undefined ? null : b.origin,
+    }));
+    extraPeople = (Array.isArray(state.extra_people) ? state.extra_people : [])
+      .filter(p => !DATA.people.includes(p));
+    // Hours held by someone this export does not know about would otherwise
+    // disappear from the board while still sitting in the plan. Give them a card.
+    const known = people();
+    blocks.forEach(b => {
+      if (b.owner && !known.includes(b.owner)) { extraPeople.push(b.owner); known.push(b.owner); }
+    });
+    if (DATA.years.includes(state.year)) year = state.year;
+    selected = null; splitting = null; deferring = null;
+    render();
+    return state.fingerprint && state.fingerprint !== DATA.fingerprint
+      ? 'This plan was saved against a different export (' + state.fingerprint + ', now ' +
+        DATA.fingerprint + '). The blocks come from the file, so it and the rest of the ' +
+        'dashboard may not line up.'
+      : '';
+  }
+
+  // What is worth writing: the blocks and the cards, not which year is on screen
+  // or which chip happens to be selected.
+  function planSignature() {
+    return JSON.stringify(blocks) + '|' + extraPeople.join('|');
+  }
+
+  async function writePlan() {
+    if (!planFile) return;
+    const sig = planSignature();
+    try {
+      const w = await planFile.createWritable();
+      await w.write(planFileText());
+      await w.close();
+      savedSignature = sig;  // left stale by a failure, so the next change retries
+      status('Saved to ' + planFile.name + ' at ' + new Date().toLocaleTimeString());
+    } catch (err) {
+      status('Could not write ' + planFile.name + ': ' + err.message);
+    }
+  }
+
+  // render() runs on every click, most of which move nothing.
+  function scheduleSave() {
+    if (!planFile || planSignature() === savedSignature) return;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(writePlan, 700);
+    status('Saving to ' + planFile.name + '\\u2026');
   }
 
   el('board-undo').addEventListener('click', () => {
@@ -535,11 +872,62 @@ BOARD_JS = """
     render();
   });
   el('board-csv').addEventListener('click', () => {
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([csvText()], { type: 'text/csv' }));
-    a.download = 'allocation_plan.csv';
-    a.click();
-    URL.revokeObjectURL(a.href);
+    download(DATA.plan_file.replace(/\\.txt$/, '') + '.csv', csvText(), 'text/csv');
+  });
+  el('chart-year').addEventListener('change', drawChart);
+  el('chart-view').addEventListener('change', drawChart);
+  el('chart-toggle').addEventListener('click', () => {
+    const panel = el('board-chart');
+    const hidden = panel.classList.toggle('hidden');
+    el('chart-toggle').textContent = hidden ? 'Show chart' : 'Hide chart';
+    drawChart();
+  });
+
+  el('board-save').addEventListener('click', async () => {
+    if (planFile) { await writePlan(); return; }
+    if (!canWriteFiles) {
+      download(DATA.plan_file, planFileText(), 'text/plain');
+      status('Downloaded ' + DATA.plan_file + '.');
+      warn('This browser cannot keep a file up to date as you work, so that copy is a ' +
+           'snapshot: save again before you close the page, and move it next to the ' +
+           'dashboard. Chrome and Edge can write as you go.');
+      return;
+    }
+    try {
+      planFile = await window.showSaveFilePicker({
+        suggestedName: DATA.plan_file, types: FILE_TYPES,
+      });
+    } catch (err) { return; }  // the picker was cancelled
+    el('board-save').textContent = 'Save now';
+    warn('');
+    await writePlan();
+  });
+
+  el('board-open').addEventListener('click', async () => {
+    if (!canWriteFiles) { el('board-plan-input').click(); return; }
+    let handle, state;
+    try { handle = (await window.showOpenFilePicker({ types: FILE_TYPES }))[0]; }
+    catch (err) { return; }  // the picker was cancelled
+    try { state = parsePlanFile(await (await handle.getFile()).text()); }
+    catch (err) { status('Could not read that file: ' + err.message); return; }
+    planFile = handle;
+    el('board-save').textContent = 'Save now';
+    warn(applyPlan(state));
+    status('Loaded ' + handle.name + ' \\u00b7 saving back to it as you work');
+  });
+
+  el('board-plan-input').addEventListener('change', async e => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    let state;
+    try { state = parsePlanFile(await file.text()); }
+    catch (err) { status('Could not read that file: ' + err.message); return; }
+    const mismatch = applyPlan(state);
+    status('Loaded ' + file.name);
+    warn((mismatch ? mismatch + ' ' : '') +
+         'This browser cannot write back to the file, so use Save plan file to download an ' +
+         'updated copy before you close the page.');
   });
   el('board-show').addEventListener('click', () => {
     const box = el('plan-text');
@@ -554,13 +942,22 @@ BOARD_JS = """
       year = y; selected = null; splitting = null; deferring = null; render();
     });
   });
+  // The seam the DOM test drives, and a way to script the board from a console.
+  window.BOARD_API = {
+    planFileText: planFileText,
+    loadPlanText: text => applyPlan(parsePlanFile(text)),
+    chartFigure: chartFigure,
+  };
+
   dropTarget(el('pool'), null);
   render();
+  status('Not saved yet. The plan lives in this page until you write it to a file' +
+         (canWriteFiles ? '.' : ', and this browser can only download a copy.'));
 })();
 """
 
 
-def board_data(group: Group) -> dict:
+def board_data(group: Group, plan_file: str = "allocation_plan.txt") -> dict:
     """Everything the board needs, as plain JSON.
 
     Every project budget line becomes a block. Named lines start owned by that
@@ -624,6 +1021,11 @@ def board_data(group: Group) -> dict:
         if unassigned_by_year else group.reporting_year
     )
 
+    # Enough of the export to tell whether a saved plan came from this one. A
+    # plan opened against a rebuilt export is still worth loading, but the two
+    # may disagree, and the board says so rather than pretending otherwise.
+    fingerprint = f"{len(blocks)} blocks / {sum(b['hours'] for b in blocks):,.0f} h"
+
     return {
         "years": [int(y) for y in group.years],
         "default_year": int(default_year),
@@ -633,17 +1035,21 @@ def board_data(group: Group) -> dict:
         "second_groups": {p: g.split(" / ")[-1] for p, g in group.second_groups().items()},
         "blocks": blocks,
         "project_years": project_years,
+        "project_colour": project_colours(group),
         "billable_hours": group.assumptions.billable_hours,
         "unallocated_person": UNALLOCATED_PERSON,
+        "fingerprint": fingerprint,
+        "plan_file": plan_file,
     }
 
 
-def board_html(group: Group) -> str:
-    data = board_data(group)
+def board_html(group: Group, plan_file: str = "allocation_plan.txt") -> str:
+    data = board_data(group, plan_file)
     years = "".join(
         f'<button id="year-{y}" aria-pressed="false">{y}<span class="badge"></span></button>' for y in data["years"]
     )
     guide = data["billable_hours"]
+    chart_years = "".join(f'<option value="{y}">{y}</option>' for y in data["years"])
     return f"""
 <div class="board">
   <p class="hint">Every budgeted hour is a block here, including hours that already have a
@@ -655,8 +1061,9 @@ def board_html(group: Group) -> str:
   than they were budgeted.
   The {guide:,.0f} h line is a guide rather than a limit, so each card also shows that
   person's own current billing rate, and the thin vertical mark is where they started.
-  Nothing is saved and nothing is written back to the budget system: export the plan
-  before you close the page.</p>
+  Nothing is written back to the budget system, and the plan is gone on a refresh unless
+  you put it in a file: <b>Save plan file</b> names one and keeps it up to date as you
+  work, and <b>Open plan file</b> picks a reallocation up in a later session.</p>
   <div class="board-controls">
     <div class="seg" role="group" aria-label="Budget year">{years}</div>
     <span class="newperson">
@@ -668,6 +1075,33 @@ def board_html(group: Group) -> str:
     <button class="btn" id="board-show">Show plan as text</button>
     <button class="btn" id="board-csv">Download CSV</button>
     <button class="btn" id="board-reset">Reset</button>
+  </div>
+  <div class="filerow">
+    <button class="btn" id="board-save">Save plan file</button>
+    <button class="btn" id="board-open">Open plan file</button>
+    <input type="file" id="board-plan-input" accept=".txt,text/plain" style="display:none"
+           aria-label="A plan file saved earlier">
+    <span class="status" id="board-save-status"></span>
+    <span class="warn" id="board-save-warn"></span>
+  </div>
+  <div class="board-chart" id="board-chart">
+    <div class="head">
+      <h3>Proposed allocation</h3>
+      <label for="chart-year">Year</label>
+      <select id="chart-year">
+        <option value="follow" selected>Board year</option>
+        {chart_years}
+        <option value="all">All years</option>
+      </select>
+      <label for="chart-view">Show</label>
+      <select id="chart-view">
+        <option value="projects" selected>Stacked by project</option>
+        <option value="baseline">Proposed against budget</option>
+      </select>
+      <span class="spacer"></span>
+      <button class="btn" id="chart-toggle">Hide chart</button>
+    </div>
+    <div class="plot" id="board-chart-plot"></div>
   </div>
   <div class="board-grid">
     <div class="pool" id="pool">

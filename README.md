@@ -8,11 +8,37 @@ Six views: group capacity by year, per-person allocation and burn, per-project
 teams over time, a deep dive into any one researcher, a person-by-project matrix,
 and a drag-and-drop allocation board for planning meetings.
 
+*One researcher* puts three panels behind a name: this year's budget against what
+has been booked, commitments across every year in the export, and — since the
+billing standard only accounts for part of a working year — where the rest of the
+year went. That last panel splits internal time and leave by the task actually
+booked to, which is as much detail as the export carries: vacation, parental
+leave, self- and doctor-certified sick leave, and the kinds of internal work, one
+bar each. Someone who has booked nothing outside projects is told so rather than
+shown an empty grid.
+
+The two People views that read a single year — *Hours budgeted per person* and
+*Project time against plan* — carry a year picker in the top right, so a planning
+conversation can move from this year to next without rebuilding the page. Each
+year is re-sorted and re-scaled on its own terms, and a year still to come says
+that nothing is booked to it yet rather than drawing an empty comparison. Years
+the export budgets nothing to are not offered.
+
 ## Install
+
+With [uv](https://docs.astral.sh/uv/), into a project virtualenv:
 
 ```bash
 git clone git@github.com:<you>/cicero-hours.git
 cd cicero-hours
+uv venv                      # creates .venv on Python >=3.10
+uv pip install -e ".[dev]"
+source .venv/bin/activate    # or prefix commands with `uv run`
+```
+
+Or with pip into an environment of your own:
+
+```bash
 pip install -e ".[dev]"
 ```
 
@@ -57,6 +83,15 @@ board, which is the content of that request. The year buttons show the net hours
 each year has gained or lost, and the board warns when a block is being pushed
 into a year the project has no budget in at all.
 
+A stacked bar of the proposal sits above the cards, the same shape as *Hours
+budgeted per person* on the People tab but drawn from the board's own state, so
+the effect of a move on the whole group is visible while it is being made. Two
+dropdowns: **Year** follows the board or pins any single year or the whole
+horizon, which is how you check that hours pushed out of one year land somewhere
+survivable; **Show** switches between the stack by project and proposed against
+budgeted, side by side. The hatched row is the unassigned pool, and watching it
+drain is usually the point of the meeting.
+
 The billing standard is a **guide, not a limit**. Researchers legitimately bill
 above and below it, so each card also carries that person's own rate, annualised
 from what they have booked so far, and the thin vertical mark on the bar is where
@@ -71,9 +106,25 @@ board should be able to express that.
 result, with where each block started alongside where it ended, plus a change
 summary per person for the minutes.
 
+### Picking a reallocation up again
+
+A reallocation rarely finishes in one sitting. *Save plan file* names a text file
+and the page keeps it up to date from then on; *Open plan file* loads it back in a
+later session, restoring every block, split, deferral and hypothetical card. The
+readable part of the file is the plan itself — change by person for each year,
+the deferrals needing NFR approval, and the full block table — and the last line
+is the state the board reloads from. Loading is undoable, and a plan saved
+against an older export still opens, with a warning that the two may not line up.
+
+A browser cannot choose where it writes, so the save dialogue suggests
+`<dashboard>_plan.txt` and you pick the folder; put it next to the HTML. Keeping
+the file current as you work needs the File System Access API, which is Chrome
+and Edge today. Firefox and Safari fall back to downloading a snapshot, so save
+again before closing the page.
+
 **It is a sandbox, not a system of record.** Nothing is written back to the budget
-system and nothing survives a page refresh, which is deliberate: a half-remembered
-browser state is worse than none when the numbers matter.
+system, and nothing survives a page refresh unless it is in a plan file — a
+half-remembered browser state is worse than none when the numbers matter.
 
 Two things the board cannot know, and which should stay in the room rather than in
 the tool: whether a person has the right expertise for the work, and whether the
@@ -83,8 +134,9 @@ are not transferable at all, and nothing in the export marks them.
 ## Data protection
 
 **The export is personal data about named staff. Do not commit it.** `.gitignore`
-excludes `*.csv`, `*.xlsx`, `data/` and any rendered `*_dashboard.html`, since the
-rendered page embeds the same information. The test suite builds its own synthetic
+excludes `*.csv`, `*.xlsx`, `data/`, any rendered `*_dashboard.html` and any saved
+`*_plan.txt`, since the rendered page embeds the same information and a plan names
+who is being asked to do what. The test suite builds its own synthetic
 export in `tests/synthetic.py` rather than relying on a real one.
 
 ## What the export actually contains
@@ -97,6 +149,13 @@ export in `tests/synthetic.py` rather than relying on a real one.
   Registered hours also include internal CICERO time (10501, 10506) and absence
   (10503). Every budget-versus-actual comparison here therefore uses project time
   alone, with the other two shown separately rather than folded in.
+* Those non-project rows carry a task, which is the only detail the export gives
+  about time off projects, and it is a good deal: seven kinds of leave and ten
+  kinds of internal work, coded and named in Norwegian and English either side of
+  a slash. `_task_label` drops the code and keeps the English; the full string
+  stays in the hover. Nothing in the export says *why* leave was taken beyond the
+  category, and nothing dates it, so the deep dive totals a year rather than
+  drawing a calendar.
 * Registered rows repeat per activity code, including cost-only rows with no
   hours. `tidy_registered` collapses them to person / project / task / year.
 * `Forsker Climate Mitigation` is not a colleague. It carries hours budgeted to
@@ -120,6 +179,7 @@ export in `tests/synthetic.py` rather than relying on a real one.
 | `loader.py` | Finds the tables inside the export by column signature. |
 | `model.py` | Tidies both tables, categorises time, holds capacity and pro-rating assumptions. |
 | `figures.py` | One function per figure, each taking a `Group`. |
+| `board.py` | The allocation board: its blocks, its browser code, its plan file. |
 | `dashboard.py` | Page shell, KPI strip, tabs, notes. |
 | `cli.py` | Argument parsing. |
 

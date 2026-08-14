@@ -154,7 +154,9 @@ def build_dashboard(group: Group, output: str | Path, title: str = "Climate Miti
         ("matrix", "Who is on what", [
             F.fig_matrix(group, year),
         ]),
-        ("board", "Allocation board", board_html(group)),
+        # A browser cannot choose where it writes, so the best the board can do
+        # is suggest a name next to the dashboard and let the user pick the folder.
+        ("board", "Allocation board", board_html(group, f"{Path(output).stem}_plan.txt")),
     ]
 
     nav = "".join(

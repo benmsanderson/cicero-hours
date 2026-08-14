@@ -1,8 +1,20 @@
 // Exercises the allocation board's JS in jsdom: initial render, moving committed
 // hours between people, splitting, capacity feedback, undo, adding a card, the
-// change summary, the exported plan, and reset.
+// change summary, the live chart of the proposal, the plan file it saves and
+// reloads, the exported plan, and reset.
 const fs = require("fs");
-const { JSDOM } = require("jsdom");
+const { JSDOM, VirtualConsole } = require("jsdom");
+
+// The plotly bundle is stripped below, so the figure scripts it leaves behind
+// throw on every load. That one is expected; anything else is worth seeing.
+function quietConsole() {
+  const vc = new VirtualConsole();
+  vc.sendTo(console, { omitJSDOMErrors: true });
+  vc.on("jsdomError", (err) => {
+    if (!/Plotly is not defined/.test(err.message)) console.error(err);
+  });
+  return vc;
+}
 
 const path = process.argv[2];
 if (!path) {
@@ -14,7 +26,9 @@ const html = fs.readFileSync(path, "utf8");
 // Strip the plotly bundle: it is megabytes of canvas code jsdom cannot run.
 const stripped = html.replace(/<script>[\s\S]*?Plotly[\s\S]*?<\/script>/, "<script></script>");
 
-const dom = new JSDOM(stripped, { runScripts: "dangerously", pretendToBeVisual: true });
+const dom = new JSDOM(stripped, {
+  runScripts: "dangerously", pretendToBeVisual: true, virtualConsole: quietConsole(),
+});
 const { window } = dom;
 const doc = window.document;
 const $ = (s) => doc.querySelector(s);
@@ -224,11 +238,149 @@ check("plan has a deferral section for the NFR request",
       plan.includes("Deferred to a later year (needs NFR approval)"));
 check("plan records the hypothetical person", plan.includes("New postdoc"));
 
+// --- the chart of the proposal --------------------------------------------
+// Plotly is stripped above, so the figure is checked as data rather than pixels.
+const API = window.BOARD_API;
+const figure = () => API.chartFigure();
+const rowTotal = (fig, person) => {
+  const i = fig.order.indexOf(person);
+  return i < 0 ? 0 : fig.traces.reduce((s, t) => s + (t.x[i] || 0), 0);
+};
+
+check("the chart panel and its dropdowns are on the page",
+      !!$("#board-chart-plot") && !!$("#chart-year") && !!$("#chart-view"));
+let fig = figure();
+check("the chart follows the board year by default", fig.years.join() === String(D.default_year));
+check("the chart has a row for the unassigned pool", fig.order.includes("Unassigned"));
+check("the chart totals match the cards",
+      Math.abs(rowTotal(fig, donor) - planned(donor)) < 2,
+      `chart ${rowTotal(fig, donor)} vs card ${planned(donor)}`);
+check("the chart carries the hypothetical person's hours",
+      Math.abs(rowTotal(fig, "New postdoc") - planned("New postdoc")) < 2);
+check("stacked segments are one trace per project",
+      fig.traces.every(t => t.type === "bar" && t.orientation === "h" &&
+                            t.x.length === fig.order.length));
+
+$("#chart-year").value = String(otherYear);
+fig = figure();
+check("the year dropdown moves the chart off the board year",
+      fig.years.join() === String(otherYear));
+check("the chart shows the other year's hours, not this one's",
+      Math.abs(rowTotal(fig, donor) -
+               window.BOARD_DATA.blocks.filter(b => b.year === otherYear && b.origin === donor)
+                 .reduce((s, b) => s + b.hours, 0)) < 2);
+
+$("#chart-year").value = "all";
+fig = figure();
+check("the all-years option covers every year", fig.years.length === D.years.length);
+const everyHour = D.blocks.reduce((s, b) => s + b.hours, 0);
+check("every budgeted hour lands in some row of the all-years chart",
+      Math.abs(fig.order.reduce((s, p) => s + rowTotal(fig, p), 0) - everyHour) < 2,
+      `${fig.order.reduce((s, p) => s + rowTotal(fig, p), 0)} of ${everyHour}`);
+
+$("#chart-year").value = "follow";
+$("#chart-view").value = "baseline";
+fig = figure();
+check("the comparison view draws budgeted against proposed",
+      fig.traces.length === 2 && fig.traces[0].name === "Budgeted" &&
+      fig.traces[1].name === "Proposed");
+check("the budgeted series is the export, not the proposal",
+      Math.abs(fig.traces[0].x[fig.order.indexOf(donor)] -
+               ((D.baseline[donor] || {})[D.default_year] || 0)) < 2);
+check("the proposed series is the board",
+      Math.abs(fig.traces[1].x[fig.order.indexOf(donor)] - planned(donor)) < 2);
+$("#chart-view").value = "projects";
+
+// --- the plan file --------------------------------------------------------
+const saved = API.planFileText();
+const donorMid = planned(donor), postdocMid = planned("New postdoc");
+const chipsMid = $$("#board .chip").length;
+check("the plan file names the export it came from", saved.includes(D.fingerprint));
+check("the plan file explains how to pick it up again", /Open plan file/.test(saved));
+check("the plan file lists the change by person", /Change by person, \d{4}/.test(saved));
+check("the plan file carries the block table",
+      saved.includes("project\thours\tbudget year\tnow in\toriginally\tnow"));
+check("the plan file ends with reloadable state", /\n\{"v":1,[\s\S]*\}\n?$/.test(saved));
+
+click($("#board-reset"));
+check("reset clears the board before reloading", Math.abs(planned(donor) - donorBefore) < 2);
+API.loadPlanText(saved);
+check("loading the file restores the moves", Math.abs(planned(donor) - donorMid) < 2,
+      `${planned(donor)} vs ${donorMid}`);
+check("loading the file restores an added card",
+      !!cardFor("New postdoc") && Math.abs(planned("New postdoc") - postdocMid) < 2);
+check("loading the file restores every block, splits included",
+      $$("#board .chip").length === chipsMid);
+check("a load can be undone", $("#board-undo").disabled === false);
+let threw = false;
+try { API.loadPlanText("just some notes about the meeting"); } catch (e) { threw = true; }
+check("a file with no board state is refused", threw);
+check("the refused file left the plan alone", Math.abs(planned(donor) - donorMid) < 2);
+
 // --- reset ----------------------------------------------------------------
 click($("#board-reset"));
 check("reset removes added cards", cards().length === D.people.length);
 check("reset restores the donor", Math.abs(planned(donor) - donorBefore) < 2);
 check("reset clears history", $("#board-undo").disabled === true);
 
-console.log(failures ? `\n${failures} failing` : "\nall board interactions pass");
-process.exit(failures ? 1 : 0);
+// --- keeping the file up to date ------------------------------------------
+// The board writes through the File System Access API, which jsdom does not
+// have, so a stand-in handle collects what would have been written. Chrome and
+// Edge provide the real one; Firefox and Safari take the download path instead.
+async function autosaveChecks() {
+  const writes = [];
+  const handle = {
+    name: "plan.txt",
+    createWritable: async () => ({
+      write: async (text) => { writes.push(text); },
+      close: async () => {},
+    }),
+  };
+  const dom2 = new JSDOM(stripped, {
+    runScripts: "dangerously",
+    pretendToBeVisual: true,
+    virtualConsole: quietConsole(),
+    beforeParse(w) {
+      w.showSaveFilePicker = async () => handle;
+      w.showOpenFilePicker = async () => [handle];
+    },
+  });
+  const w2 = dom2.window, d2 = w2.document;
+  const tap = (el) => el.dispatchEvent(new w2.MouseEvent("click", { bubbles: true }));
+  const settle = () => new Promise((r) => setTimeout(r, 900));  // past the save debounce
+
+  tap(d2.getElementById("board-save"));
+  await settle();
+  check("naming a file writes the plan to it", writes.length === 1);
+  check("the button becomes Save now once a file is named",
+        d2.getElementById("board-save").textContent === "Save now");
+  check("the status line names the file",
+        /plan\.txt/.test(d2.getElementById("board-save-status").textContent));
+
+  const chip2 = d2.querySelector("#pool-chips .chip") ||
+                d2.querySelector("#people-grid .person .chip");
+  const holder = chip2.closest(".person");
+  const target = Array.from(d2.querySelectorAll("#people-grid .person")).find(c => c !== holder);
+  tap(chip2);
+  tap(target);
+  await settle();
+  check("moving a block writes the file again", writes.length === 2, `${writes.length} writes`);
+  check("the file follows the move",
+        writes[1] !== writes[0] && writes[1].includes("Change by person"));
+
+  const quiet = writes.length;
+  tap(d2.querySelector("#people-grid .person .chip"));   // select
+  tap(d2.getElementById("year-" + D.years[D.years.length - 1]));  // look at another year
+  await settle();
+  check("clicking about without moving anything leaves the file alone",
+        writes.length === quiet, `${writes.length - quiet} extra writes`);
+
+  let reloads = true;
+  try { w2.BOARD_API.loadPlanText(writes[writes.length - 1]); } catch (e) { reloads = false; }
+  check("what the board wrote is what the board can read back", reloads);
+}
+
+autosaveChecks().then(() => {
+  console.log(failures ? `\n${failures} failing` : "\nall board interactions pass");
+  process.exit(failures ? 1 : 0);
+});

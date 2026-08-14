@@ -95,6 +95,46 @@ def _shorten(label: str, width: int = 22) -> str:
     return label if len(label) <= width else label[: width - 1] + "\u2026"
 
 
+def _task_label(task) -> str:
+    """'92 - Ferie/Vacation' becomes 'Vacation'.
+
+    Internal and absence tasks are coded, then named in Norwegian and English
+    either side of a slash. The code is noise on a chart and the rest of the
+    dashboard speaks English; the original string stays in the hover.
+    """
+    if not isinstance(task, str) or not task.strip():
+        return "Unspecified"
+    body = task.split(" - ", 1)[1] if " - " in task.split("/", 1)[0] else task
+    label = body.rsplit("/", 1)[-1].strip()
+    return label or task.strip()
+
+
+def _menu_y(height: int, top: int, bottom: int = 44, gap: int = 46) -> float:
+    """Where to float a picker so it sits `gap` pixels above the plotting area.
+
+    Menu coordinates are fractions of the plotting area rather than the page, so
+    one constant y drifts further from the plot the taller the figure gets, and
+    these figures are as tall as the group is large.
+    """
+    return 1 + gap / max(height - top - bottom, 1)
+
+
+def _dropdown(
+    buttons: list[dict], height: int, top: int, bottom: int = 44, active: int = 0,
+    gap: int = 46,
+) -> dict:
+    """A picker in the top right. `gap` clears whatever else is up there."""
+    return dict(
+        buttons=buttons, direction="down", showactive=True, active=active,
+        x=1, xanchor="right", y=_menu_y(height, top, bottom, gap), yanchor="top",
+        bgcolor="#FFFFFF", bordercolor=HAIRLINE, font=dict(size=12),
+    )
+
+
+def _title(title: str, subtitle: str) -> str:
+    return f"<b>{title}</b><br><span style=\"font-size:12px;color:{MUTED}\">{subtitle}</span>"
+
+
 def _capacity_zone(
     fig: go.Figure, capacity: float, horizontal: bool = True, label: str = "",
 ) -> None:
@@ -207,37 +247,81 @@ def _stack_with_rollup(df: pd.DataFrame, top_n: int) -> pd.DataFrame:
     return pd.concat(out, ignore_index=True)
 
 
+def _budgeted_years(group: Group) -> list[int]:
+    """Years with budgeted project hours, which is not every year in the export."""
+    return [y for y in group.years if not group.budget_by_person_project(y).empty]
+
+
 def fig_person_budget_stack(group: Group, year: int, top_n: int = 6) -> go.Figure:
-    df = group.budget_by_person_project(year)
-    order = df.groupby("person")["hours"].sum().sort_values().index.tolist()
-    df = _stack_with_rollup(df, top_n)
+    """Budgeted hours per person for one year, with the other years a click away.
+
+    Every year's bars are built and all but one hidden, rather than a figure per
+    year: the tab would otherwise carry one of these for each year in the export.
+    """
+    years = _budgeted_years(group)
+    if year not in years:
+        year = years[-1]
     colours = project_colours(group)
+    subtitle = (
+        f"Largest {top_n} projects each, labelled where they fit; the rest pooled in grey. "
+        f"'{UNALLOCATED_PERSON}' is unassigned group time."
+    )
+
     fig = go.Figure()
-    projects = df.groupby("project")["hours"].sum().sort_values(ascending=False).index
-    for proj in projects:
-        sub = df[df["project"] == proj]
-        is_rollup = proj.startswith("Other (")
-        fig.add_bar(
-            y=sub["person"], x=sub["hours"], name=proj, orientation="h",
-            marker_color="#B9C2C9" if is_rollup else colours.get(proj, "#8899A6"),
-            hovertemplate="%{y}<br>" + proj + ": %{x:,.0f} h<extra></extra>",
-            text=[_shorten(proj)] * len(sub), textposition="inside",
-            insidetextanchor="middle",
-            insidetextfont=dict(color="#FFFFFF" if not is_rollup else INK, size=11),
-            textangle=0, constraintext="inside",
-            showlegend=False,
+    owner: list[int] = []
+    order_of: dict[int, list[str]] = {}
+    for y in years:
+        df = group.budget_by_person_project(y)
+        order_of[y] = df.groupby("person")["hours"].sum().sort_values().index.tolist()
+        df = _stack_with_rollup(df, top_n)
+        projects = df.groupby("project")["hours"].sum().sort_values(ascending=False).index
+        for proj in projects:
+            sub = df[df["project"] == proj]
+            is_rollup = proj.startswith("Other (")
+            fig.add_bar(
+                y=sub["person"], x=sub["hours"], name=proj, orientation="h",
+                visible=(y == year),
+                marker_color="#B9C2C9" if is_rollup else colours.get(proj, "#8899A6"),
+                hovertemplate="%{y}<br>" + proj + ": %{x:,.0f} h<extra></extra>",
+                text=[_shorten(proj)] * len(sub), textposition="inside",
+                insidetextanchor="middle",
+                insidetextfont=dict(color="#FFFFFF" if not is_rollup else INK, size=11),
+                textangle=0, constraintext="inside",
+                showlegend=False,
+            )
+            owner.append(y)
+
+    # A year late in the export may hold only a couple of people. The floor is
+    # low enough that two rows do not become two very fat bars.
+    def height_for(y: int) -> int:
+        return max(280, 36 * len(order_of[y]) + 180)
+
+    buttons = [
+        dict(
+            label=str(y), method="update",
+            args=[
+                {"visible": [o == y for o in owner]},
+                {"title.text": _title(f"Hours budgeted per person, {y}", subtitle),
+                 "yaxis.categoryarray": order_of[y],
+                 # A year with fewer people makes a shorter figure, and the
+                 # picker has to be re-floated against the new plotting area.
+                 "height": height_for(y),
+                 "updatemenus[0].y": _menu_y(height_for(y), 124)},
+            ],
         )
+        for y in years
+    ]
+
     fig.update_layout(
         barmode="stack",
-        **_base_layout(
-            f"Hours budgeted per person, {year}",
-            f"Largest {top_n} projects each, labelled where they fit; the rest pooled in grey. "
-            f"'{UNALLOCATED_PERSON}' is unassigned group time.",
-            height=max(420, 36 * len(order) + 140),
-        ),
+        **_base_layout(f"Hours budgeted per person, {year}", subtitle, height=height_for(year)),
     )
-    fig.update_yaxes(categoryorder="array", categoryarray=order)
-    fig.update_layout(uniformtext=dict(mode="hide", minsize=9))
+    fig.update_layout(
+        margin=dict(l=10, r=20, t=124, b=44),
+        uniformtext=dict(mode="hide", minsize=9),
+        updatemenus=[_dropdown(buttons, height_for(year), top=124, active=years.index(year))],
+    )
+    fig.update_yaxes(categoryorder="array", categoryarray=order_of[year])
     _capacity_zone(
         fig, group.assumptions.billable_hours,
         label=f"{group.assumptions.billable_hours:,.0f} h billing standard",
@@ -247,34 +331,82 @@ def fig_person_budget_stack(group: Group, year: int, top_n: int = 6) -> go.Figur
 
 
 def fig_person_burn(group: Group, year: int) -> go.Figure:
-    s = group.person_summary(year)
-    s = s[(s["project_budget"] > 0) | (s["Project"] > 0)].sort_values("project_budget")
-    frac = group.assumptions.year_fraction(year)
+    """Budget against hours booked for one year, with the other years a click away.
+
+    A year still to come has nothing registered and nothing expected yet, so the
+    subtitle says how far through each year the reading is taken.
+    """
+    rows = {}
+    for y in group.years:
+        s = group.person_summary(y)
+        s = s[(s["project_budget"] > 0) | (s["Project"] > 0)].sort_values("project_budget")
+        if len(s):
+            rows[y] = s
+    years = list(rows)
+    if year not in years:
+        year = years[-1]
+
+    def subtitle_for(y: int) -> str:
+        frac = group.assumptions.year_fraction(y)
+        if frac == 0:
+            return ("Absence and internal time excluded. Nothing is booked to "
+                    f"{y} yet, so the bars are the budget as it stands.")
+        return ("Absence and internal time excluded. Tick marks the straight-line "
+                f"expectation at {frac:.0%} of {y}'s working year.")
+
     fig = go.Figure()
-    fig.add_bar(
-        y=s.index, x=s["project_budget"], name=f"Budgeted for {year}", orientation="h",
-        marker_color=BUDGET_COLOUR,
-        hovertemplate="%{y}<br>budgeted: %{x:,.0f} h<extra></extra>",
-    )
-    fig.add_bar(
-        y=s.index, x=s["Project"], name="Registered so far", orientation="h",
-        marker_color=REGISTERED_COLOUR, width=0.42,
-        hovertemplate="%{y}<br>registered: %{x:,.0f} h<extra></extra>",
-    )
-    fig.add_scatter(
-        y=s.index, x=s["expected_to_date"], mode="markers", name="On plan at this date",
-        marker=dict(symbol="line-ns", size=16, line=dict(color="#C75A3C", width=2.2)),
-        hovertemplate="%{y}<br>on plan: %{x:,.0f} h<extra></extra>",
-    )
+    owner: list[int] = []
+    for y, s in rows.items():
+        visible = y == year
+        fig.add_bar(
+            y=s.index, x=s["project_budget"], name=f"Budgeted for {y}", orientation="h",
+            marker_color=BUDGET_COLOUR, visible=visible, legendgroup="budget",
+            hovertemplate="%{y}<br>budgeted: %{x:,.0f} h<extra></extra>",
+        )
+        fig.add_bar(
+            y=s.index, x=s["Project"], name="Registered so far", orientation="h",
+            marker_color=REGISTERED_COLOUR, width=0.42, visible=visible, legendgroup="registered",
+            hovertemplate="%{y}<br>registered: %{x:,.0f} h<extra></extra>",
+        )
+        fig.add_scatter(
+            y=s.index, x=s["expected_to_date"], mode="markers", name="On plan at this date",
+            marker=dict(symbol="line-ns", size=16, line=dict(color="#C75A3C", width=2.2)),
+            visible=visible, legendgroup="onplan",
+            hovertemplate="%{y}<br>on plan: %{x:,.0f} h<extra></extra>",
+        )
+        owner += [y] * 3
+
+    def height_for(y: int) -> int:
+        return max(280, 34 * len(rows[y]) + 180)
+
+    buttons = [
+        dict(
+            label=str(y), method="update",
+            args=[
+                {"visible": [o == y for o in owner]},
+                {"title.text": _title(f"Project time against plan, {y}", subtitle_for(y)),
+                 "yaxis.categoryarray": rows[y].index.tolist(),
+                 "height": height_for(y),
+                 "updatemenus[0].y": _menu_y(height_for(y), 124)},
+            ],
+        )
+        for y in years
+    ]
+
     fig.update_layout(
         barmode="overlay",
         **_base_layout(
-            f"Project time against plan, {year}",
-            f"Absence and internal time excluded. Tick marks the straight-line "
-            f"expectation at {frac:.0%} of the working year.",
-            height=max(420, 34 * len(s) + 140),
+            f"Project time against plan, {year}", subtitle_for(year), height=height_for(year),
         ),
     )
+    fig.update_layout(
+        margin=dict(l=10, r=20, t=124, b=44),
+        # The year picker takes the top right, so the legend moves out from under it.
+        legend=dict(orientation="h", yanchor="bottom", y=1.0, xanchor="left", x=0,
+                    font=dict(size=11), bgcolor="rgba(0,0,0,0)"),
+        updatemenus=[_dropdown(buttons, height_for(year), top=124, active=years.index(year))],
+    )
+    fig.update_yaxes(categoryorder="array", categoryarray=rows[year].index.tolist())
     fig.update_xaxes(title_text="hours")
     return fig
 
@@ -475,11 +607,23 @@ def fig_matrix(group: Group, year: int, min_hours: float = 1.0) -> go.Figure:
 # ------------------------------------------------------------------ deep dive
 
 
+def _rest_heading(mine: pd.DataFrame, year: int) -> str:
+    """Heading for the non-project panel, which reports what it is showing."""
+    if mine.empty:
+        return f"The rest of {year}: nothing booked outside projects"
+    by_cat = mine.groupby("category")["hours"].sum()
+    bits = [f"{h:,.0f} h {cat.lower()}" for cat, h in by_cat.sort_values(ascending=False).items()]
+    return f"The rest of {year}: {' · '.join(bits)}, by task"
+
+
 def fig_person_deep_dive(group: Group, year: int) -> go.Figure:
     """One researcher at a time, with every project shown rather than pooled.
 
-    Left: where this year's budget sits and how much of it has been booked.
-    Right: the same person's commitments across all years in the export.
+    Top left: where this year's budget sits and how much of it has been booked.
+    Top right: the same person's commitments across all years in the export.
+    Below: the rest of the year, which is where the billing standard's missing
+    hours actually go — internal work and leave, split by the task booked to,
+    since that is as much detail as the export carries.
     """
     people = (
         group.person_summary(year)
@@ -496,9 +640,22 @@ def fig_person_deep_dive(group: Group, year: int) -> go.Figure:
     frac = group.assumptions.year_fraction(year)
     years = group.years
 
+    rest = group.nonproject_by_person_task(year)
+    rest = rest.assign(label=rest["task"].map(_task_label))
+    task_rows = rest.groupby("person").size()
+    # One height for everyone, sized for the busiest: the panels would otherwise
+    # jump about as the reader steps through the group.
+    bottom = max(130, 21 * int(task_rows.max()) if len(task_rows) else 0)
+
     fig = make_subplots(
-        rows=1, cols=2, column_widths=[0.56, 0.44], horizontal_spacing=0.13,
-        subplot_titles=(f"{year}: budget against hours booked", "Commitments by year"),
+        rows=2, cols=2, column_widths=[0.56, 0.44], row_heights=[400, bottom],
+        horizontal_spacing=0.13, vertical_spacing=0.12,
+        specs=[[{}, {}], [{"colspan": 2}, None]],
+        subplot_titles=(
+            f"{year}: budget against hours booked",
+            "Commitments by year",
+            f"The rest of {year}, by task",
+        ),
     )
     owner: list[str] = []
 
@@ -559,12 +716,30 @@ def fig_person_deep_dive(group: Group, year: int) -> go.Figure:
             )
             owner.append(person)
 
+        # Time off projects, split by task. Only the categories this person
+        # actually booked to, so the legend does not promise absence they
+        # never took.
+        mine = rest[rest["person"] == person]
+        for cat in CATEGORY_ORDER[1:]:
+            sub = mine[mine["category"] == cat].sort_values("hours")
+            if sub.empty:
+                continue
+            fig.add_bar(
+                y=sub["label"], x=sub["hours"], orientation="h", name=cat,
+                marker_color=CATEGORY_COLOURS[cat], visible=visible, legendgroup=cat,
+                customdata=sub["task"].fillna("no task on the row"),
+                hovertemplate="%{customdata}<br>" + cat + ": %{x:,.0f} h<extra></extra>",
+                row=2, col=1,
+            )
+            owner.append(person)
+
     summary = group.person_summary(year)
     buttons = []
     for person in people:
         row = summary.loc[person]
         second = group.second_groups().get(person)
         tail = f" · part-time in {second.split(' / ')[-1]}" if second else ""
+        mine = rest[rest["person"] == person]
         buttons.append(dict(
             label=person, method="update",
             args=[
@@ -572,33 +747,42 @@ def fig_person_deep_dive(group: Group, year: int) -> go.Figure:
                 {"title.text": f"<b>{person}</b><br>"
                                f'<span style="font-size:12px;color:{MUTED}">'
                                f"{row['project_budget']:,.0f} h budgeted across "
-                               f"{int(row['n_projects'])} projects in {year} · "
+                               f"{int(row['n_projects'])} "
+                               f"project{'' if row['n_projects'] == 1 else 's'} in {year} · "
                                f"{row['Project']:,.0f} h booked · "
                                f"{row['Absence']:,.0f} h absence · "
-                               f"{row['Internal']:,.0f} h internal{tail}</span>"},
+                               f"{row['Internal']:,.0f} h internal{tail}</span>",
+                 # annotations[2] is the third subplot title. Everyone books a
+                 # different mix, and someone may book nothing at all, in which
+                 # case the panel says so rather than drawing an empty grid.
+                 "annotations[2].text": _rest_heading(mine, year),
+                 "yaxis3.categoryarray": mine.sort_values("hours")["label"].tolist(),
+                 "xaxis3.visible": not mine.empty,
+                 "yaxis3.visible": not mine.empty},
             ],
         ))
 
     first = summary.loc[people[0]]
+    # The two rows and the gap between them are fractions of the plotting area,
+    # so the figure is sized from what the rows need rather than the other way round.
+    height = 130 + 90 + round((400 + bottom) / (1 - 0.12))
     fig.update_layout(
         barmode="stack",
         uniformtext=dict(mode="hide", minsize=9),
-        updatemenus=[dict(
-            buttons=buttons, direction="down", showactive=True,
-            x=1, xanchor="right", y=1.22, yanchor="top",
-            bgcolor="#FFFFFF", bordercolor=HAIRLINE, font=dict(size=12),
-        )],
+        # A wider gap than elsewhere: the subplot titles sit above the panels.
+        updatemenus=[_dropdown(buttons, height, top=130, bottom=90, gap=92)],
         **_base_layout(
             people[0],
             f"{first['project_budget']:,.0f} h budgeted across "
-            f"{int(first['n_projects'])} projects in {year}",
-            height=620,
+            f"{int(first['n_projects'])} "
+            f"project{'' if first['n_projects'] == 1 else 's'} in {year}",
+            height=height,
         ),
     )
     # The legend sits under the panels, where it cannot collide with the subplot titles.
     fig.update_layout(
         margin=dict(l=10, r=20, t=130, b=90),
-        legend=dict(orientation="h", yanchor="top", y=-0.13, xanchor="left", x=0),
+        legend=dict(orientation="h", yanchor="top", y=-0.1, xanchor="left", x=0),
     )
     fig.add_hline(
         y=group.assumptions.billable_hours, row=1, col=2,
@@ -606,8 +790,19 @@ def fig_person_deep_dive(group: Group, year: int) -> go.Figure:
         annotation_text=f"{group.assumptions.billable_hours:,.0f} h",
         annotation_position="top left", annotation_font=dict(size=11, color="#C75A3C"),
     )
+    first_rest = rest[rest["person"] == people[0]]
+    fig.layout.annotations[2].text = _rest_heading(first_rest, year)
     fig.update_xaxes(title_text="hours", row=1, col=1, gridcolor=HAIRLINE)
     fig.update_yaxes(row=1, col=1, gridcolor=HAIRLINE, tickfont=dict(size=11))
     fig.update_yaxes(title_text="hours budgeted", row=1, col=2, gridcolor=HAIRLINE)
     fig.update_xaxes(row=1, col=2, gridcolor=HAIRLINE)
+    fig.update_xaxes(
+        title_text="hours registered", row=2, col=1, gridcolor=HAIRLINE,
+        visible=not first_rest.empty,
+    )
+    fig.update_yaxes(
+        row=2, col=1, gridcolor=HAIRLINE, tickfont=dict(size=10.5), automargin=True,
+        categoryorder="array", visible=not first_rest.empty,
+        categoryarray=first_rest.sort_values("hours")["label"].tolist(),
+    )
     return fig
