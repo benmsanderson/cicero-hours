@@ -41,8 +41,12 @@ export function baseLayout(title, subtitle = '', height = 520) {
       orientation: 'h', yanchor: 'bottom', y: 1.0, xanchor: 'right', x: 1,
       font: { size: 11 }, bgcolor: 'rgba(0,0,0,0)',
     },
-    xaxis: { gridcolor: HAIRLINE, zerolinecolor: HAIRLINE, linecolor: HAIRLINE },
-    yaxis: { gridcolor: HAIRLINE, zerolinecolor: HAIRLINE, linecolor: HAIRLINE },
+    // automargin: plotly.py enables this by default, plotly.js does not.
+    // Without it the horizontal bars sit on top of the y-axis labels
+    // (margin.l is only 10). Turning it on lets the tick labels push the
+    // plotting area over as they need to.
+    xaxis: { gridcolor: HAIRLINE, zerolinecolor: HAIRLINE, linecolor: HAIRLINE, automargin: true },
+    yaxis: { gridcolor: HAIRLINE, zerolinecolor: HAIRLINE, linecolor: HAIRLINE, automargin: true },
     shapes: [],
     annotations: [],
   };
@@ -195,7 +199,13 @@ export function figGroupCapacity(group) {
     {
       type: 'bar', name: 'Unallocated',
       x, y: years.map(y => unalloc.get(y)),
-      marker: { color: UNALLOCATED_COLOUR, pattern: { shape: '/', fgcolor: '#FFFFFF', size: 6 } },
+      // bgcolor has to be given: plotly.js does not compose a pattern with
+      // marker.color the way plotly.py does, so the hatch would otherwise
+      // draw white lines on nothing and the bar body would disappear.
+      marker: {
+        color: UNALLOCATED_COLOUR,
+        pattern: { shape: '/', bgcolor: UNALLOCATED_COLOUR, fgcolor: '#FFFFFF', size: 6 },
+      },
       hovertemplate: '%{x}: %{y:,.0f} h unallocated<extra></extra>',
     },
   ];
@@ -498,7 +508,10 @@ export function figProjectTotals(group, { minHours = 100.0 } = {}) {
     traces.push({
       type: 'bar', orientation: 'h', name: `${y} unallocated`,
       y: keep, x: keep.map(p => unalloc(p, y)),
-      marker: { color: colour, pattern: { shape: '/', fgcolor: '#FFFFFF', size: 5 } },
+      marker: {
+        color: colour,
+        pattern: { shape: '/', bgcolor: colour, fgcolor: '#FFFFFF', size: 5 },
+      },
       legendgroup: String(y), showlegend: false,
       hovertemplate: '%{y}<br>' + y + ' unallocated: %{x:,.0f} h<extra></extra>',
     });
@@ -545,7 +558,9 @@ export function figProjectTeam(group, { minHours = 100.0 } = {}) {
       for (const r of team) if (r.person === person) perYear.set(r.year, (perYear.get(r.year) || 0) + r.hours);
       const isUnalloc = person === UNALLOCATED_PERSON;
       const marker = { color: isUnalloc ? UNALLOCATED_COLOUR : (colours[person] || '#8899A6') };
-      if (isUnalloc) marker.pattern = { shape: '/', fgcolor: '#FFFFFF', size: 6 };
+      if (isUnalloc) {
+        marker.pattern = { shape: '/', bgcolor: UNALLOCATED_COLOUR, fgcolor: '#FFFFFF', size: 6 };
+      }
       traces.push({
         type: 'bar', name: isUnalloc ? 'Unallocated' : person,
         x: yearStr, y: years.map(y => perYear.get(y)),
