@@ -1,0 +1,397 @@
+{
+  "as_of": "2026-07-02",
+  "billable_hours": 1250.0,
+  "board": {
+    "baseline": {
+      "Ada Lovelace": {
+        "2026": 800.0,
+        "2027": 400.0
+      },
+      "Grace Hopper": {
+        "2026": 500.0
+      }
+    },
+    "billable_hours": 1250.0,
+    "blocks": [
+      {
+        "hours": 800.0,
+        "id": "Ada Lovelace|ALPHA|2026",
+        "origin": "Ada Lovelace",
+        "owner": "Ada Lovelace",
+        "oyear": 2026,
+        "pm": "Ada Lovelace",
+        "project": "ALPHA",
+        "year": 2026
+      },
+      {
+        "hours": 400.0,
+        "id": "Ada Lovelace|ALPHA|2027",
+        "origin": "Ada Lovelace",
+        "owner": "Ada Lovelace",
+        "oyear": 2027,
+        "pm": "Ada Lovelace",
+        "project": "ALPHA",
+        "year": 2027
+      },
+      {
+        "hours": 600.0,
+        "id": "~pool|ALPHA|2027",
+        "origin": null,
+        "owner": null,
+        "oyear": 2027,
+        "pm": "Ada Lovelace",
+        "project": "ALPHA",
+        "year": 2027
+      },
+      {
+        "hours": 500.0,
+        "id": "Grace Hopper|BETA|2026",
+        "origin": "Grace Hopper",
+        "owner": "Grace Hopper",
+        "oyear": 2026,
+        "pm": "Grace Hopper",
+        "project": "BETA",
+        "year": 2026
+      }
+    ],
+    "default_year": 2027,
+    "fingerprint": "4 blocks / 2,300 h",
+    "people": [
+      "Ada Lovelace",
+      "Grace Hopper"
+    ],
+    "plan_file": "allocation_plan.txt",
+    "project_colour": {
+      "ALPHA": "#1F5F6B",
+      "BETA": "#C98F2B"
+    },
+    "project_years": {
+      "ALPHA": [
+        2026,
+        2027
+      ],
+      "BETA": [
+        2026
+      ]
+    },
+    "rate": {
+      "Ada Lovelace": 800.0,
+      "Grace Hopper": 400.0
+    },
+    "second_groups": {
+      "Grace Hopper": "Atmospheric Sciences"
+    },
+    "unallocated_person": "Forsker Climate Mitigation",
+    "years": [
+      2026,
+      2027,
+      2028
+    ]
+  },
+  "budget": [
+    {
+      "category": "Project",
+      "department": "RESEARCH 1",
+      "group_tag": "Utslippsreduksjon / Climate Mitigation",
+      "hours": 800,
+      "person": "Ada Lovelace",
+      "pm": "Ada Lovelace",
+      "project": "ALPHA",
+      "project_full": "31001 - ALPHA",
+      "project_no": 31001,
+      "second_group": null,
+      "task": "10 - Tid",
+      "unallocated": false,
+      "value": 1200000,
+      "year": 2026
+    },
+    {
+      "category": "Project",
+      "department": "RESEARCH 1",
+      "group_tag": "Utslippsreduksjon / Climate Mitigation",
+      "hours": 400,
+      "person": "Ada Lovelace",
+      "pm": "Ada Lovelace",
+      "project": "ALPHA",
+      "project_full": "31001 - ALPHA",
+      "project_no": 31001,
+      "second_group": null,
+      "task": "10 - Tid",
+      "unallocated": false,
+      "value": 620000,
+      "year": 2027
+    },
+    {
+      "category": "Project",
+      "department": "RESEARCH 1",
+      "group_tag": "Utslippsreduksjon / Climate Mitigation",
+      "hours": 500,
+      "person": "Grace Hopper",
+      "pm": "Grace Hopper",
+      "project": "BETA",
+      "project_full": "31002 - BETA",
+      "project_no": 31002,
+      "second_group": "Atmosfæreforskning / Atmospheric Sciences",
+      "task": "10 - Tid",
+      "unallocated": false,
+      "value": 750000,
+      "year": 2026
+    },
+    {
+      "category": "Project",
+      "department": "RESEARCH 1",
+      "group_tag": "Utslippsreduksjon / Climate Mitigation",
+      "hours": 600,
+      "person": "Forsker Climate Mitigation",
+      "pm": "Ada Lovelace",
+      "project": "ALPHA",
+      "project_full": "31001 - ALPHA",
+      "project_no": 31001,
+      "second_group": null,
+      "task": "10 - Tid",
+      "unallocated": true,
+      "value": 930000,
+      "year": 2027
+    },
+    {
+      "category": "Project",
+      "department": "RESEARCH 1",
+      "group_tag": "Utslippsreduksjon / Climate Mitigation",
+      "hours": 0,
+      "person": "Grace Hopper",
+      "pm": "Grace Hopper",
+      "project": "BETA",
+      "project_full": "31002 - BETA",
+      "project_no": 31002,
+      "second_group": null,
+      "task": "10 - Tid",
+      "unallocated": false,
+      "value": 0,
+      "year": 2028
+    }
+  ],
+  "excluded": [
+    "Alan Turing"
+  ],
+  "group_tag": "Utslippsreduksjon / Climate Mitigation",
+  "nonproject_by_person_task": {
+    "2026": [
+      {
+        "category": "Absence",
+        "hours": 187.5,
+        "person": "Grace Hopper",
+        "task": "92 - Ferie"
+      },
+      {
+        "category": "Internal",
+        "hours": 150.0,
+        "person": "Grace Hopper",
+        "task": "11 - Drift/Operations"
+      },
+      {
+        "category": "Internal",
+        "hours": 60.0,
+        "person": "Grace Hopper",
+        "task": "11-2 - Prosjektutv. & akkv. Bidragsforskning/Project Development and Acquisition - Research funding"
+      },
+      {
+        "category": "Absence",
+        "hours": 22.5,
+        "person": "Grace Hopper",
+        "task": "90 - Syk, Egenmelding/Sick Leave (Self-Certified)"
+      }
+    ],
+    "2027": [],
+    "2028": []
+  },
+  "people": [
+    "Ada Lovelace",
+    "Grace Hopper"
+  ],
+  "person_summary": {
+    "2026": [
+      {
+        "Absence": 0.0,
+        "Internal": 0.0,
+        "Other": 0.0,
+        "Project": 400.0,
+        "billable_target": 1250.0,
+        "expected_to_date": 398.467433,
+        "n_projects": 1,
+        "person": "Ada Lovelace",
+        "project_budget": 800,
+        "registered_total": 400.0,
+        "variance": 1.532567
+      },
+      {
+        "Absence": 210.0,
+        "Internal": 210.0,
+        "Other": 0.0,
+        "Project": 200.0,
+        "billable_target": 1250.0,
+        "expected_to_date": 249.042146,
+        "n_projects": 1,
+        "person": "Grace Hopper",
+        "project_budget": 500,
+        "registered_total": 620.0,
+        "variance": -49.042146
+      }
+    ],
+    "2027": [
+      {
+        "Absence": 0.0,
+        "Internal": 0.0,
+        "Other": 0.0,
+        "Project": 0.0,
+        "billable_target": 1250.0,
+        "expected_to_date": 0.0,
+        "n_projects": 1,
+        "person": "Ada Lovelace",
+        "project_budget": 400,
+        "registered_total": 0.0,
+        "variance": 0.0
+      }
+    ],
+    "2028": [
+      {
+        "Absence": 0.0,
+        "Internal": 0.0,
+        "Other": 0.0,
+        "Project": 0.0,
+        "billable_target": 1250.0,
+        "expected_to_date": 0.0,
+        "n_projects": 0,
+        "person": "Grace Hopper",
+        "project_budget": 0,
+        "registered_total": 0.0,
+        "variance": 0.0
+      }
+    ]
+  },
+  "project_summary": [
+    {
+      "budget_named": 800,
+      "budget_total": 800.0,
+      "budget_unallocated": 0.0,
+      "pm": "Ada Lovelace",
+      "project": "ALPHA",
+      "registered": 400.0,
+      "year": 2026
+    },
+    {
+      "budget_named": 400,
+      "budget_total": 1000.0,
+      "budget_unallocated": 600.0,
+      "pm": "Ada Lovelace",
+      "project": "ALPHA",
+      "registered": 0.0,
+      "year": 2027
+    },
+    {
+      "budget_named": 500,
+      "budget_total": 500.0,
+      "budget_unallocated": 0.0,
+      "pm": "Grace Hopper",
+      "project": "BETA",
+      "registered": 200.0,
+      "year": 2026
+    },
+    {
+      "budget_named": 0,
+      "budget_total": 0.0,
+      "budget_unallocated": 0.0,
+      "pm": "Grace Hopper",
+      "project": "BETA",
+      "registered": 0.0,
+      "year": 2028
+    }
+  ],
+  "registered": [
+    {
+      "category": "Project",
+      "group_tag": "Utslippsreduksjon / Climate Mitigation",
+      "hours": 400.0,
+      "person": "Ada Lovelace",
+      "project": "ALPHA",
+      "project_full": "31001 - ALPHA",
+      "project_no": 31001,
+      "task": "10 - Tid",
+      "value": 600000,
+      "year": 2026
+    },
+    {
+      "category": "Absence",
+      "group_tag": "Utslippsreduksjon / Climate Mitigation",
+      "hours": 22.5,
+      "person": "Grace Hopper",
+      "project": "Fravær",
+      "project_full": "10503 - Fravær",
+      "project_no": 10503,
+      "task": "90 - Syk, Egenmelding/Sick Leave (Self-Certified)",
+      "value": 0,
+      "year": 2026
+    },
+    {
+      "category": "Absence",
+      "group_tag": "Utslippsreduksjon / Climate Mitigation",
+      "hours": 187.5,
+      "person": "Grace Hopper",
+      "project": "Fravær",
+      "project_full": "10503 - Fravær",
+      "project_no": 10503,
+      "task": "92 - Ferie",
+      "value": 0,
+      "year": 2026
+    },
+    {
+      "category": "Internal",
+      "group_tag": "Utslippsreduksjon / Climate Mitigation",
+      "hours": 150.0,
+      "person": "Grace Hopper",
+      "project": "CICERO-tid Research 1",
+      "project_full": "10506 - CICERO-tid Research 1",
+      "project_no": 10506,
+      "task": "11 - Drift/Operations",
+      "value": 0,
+      "year": 2026
+    },
+    {
+      "category": "Internal",
+      "group_tag": "Utslippsreduksjon / Climate Mitigation",
+      "hours": 60.0,
+      "person": "Grace Hopper",
+      "project": "CICERO-tid Research 1",
+      "project_full": "10506 - CICERO-tid Research 1",
+      "project_no": 10506,
+      "task": "11-2 - Prosjektutv. & akkv. Bidragsforskning/Project Development and Acquisition - Research funding",
+      "value": 0,
+      "year": 2026
+    },
+    {
+      "category": "Project",
+      "group_tag": "Utslippsreduksjon / Climate Mitigation",
+      "hours": 200.0,
+      "person": "Grace Hopper",
+      "project": "BETA",
+      "project_full": "31002 - BETA",
+      "project_no": 31002,
+      "task": "10 - Tid",
+      "value": 300000,
+      "year": 2026
+    }
+  ],
+  "reporting_year": 2026,
+  "second_groups": {
+    "Grace Hopper": "Atmosfæreforskning / Atmospheric Sciences"
+  },
+  "year_fractions": {
+    "2026": 0.498084,
+    "2027": 0.0,
+    "2028": 0.0
+  },
+  "years": [
+    2026,
+    2027,
+    2028
+  ]
+}
