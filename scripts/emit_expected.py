@@ -170,6 +170,9 @@ def _figure_snapshot(fig) -> dict:
 def _snapshot_figures(g: Group, year: int) -> dict:
     """Build every figure the dashboard shows and snapshot it."""
     return {
+        # Overview tab
+        "fig_group_capacity": _figure_snapshot(F.fig_group_capacity(g)),
+        "fig_registered_composition": _figure_snapshot(F.fig_registered_composition(g, year)),
         # People tab
         "fig_person_forward": _figure_snapshot(F.fig_person_forward(g)),
         "fig_person_budget_stack": _figure_snapshot(F.fig_person_budget_stack(g, year)),

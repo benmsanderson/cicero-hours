@@ -169,6 +169,91 @@ function sumByPersonProject(rows) {
 
 // ============================================================= figures
 //
+// ---------------------------------------------------------- overview
+
+// Project hours budgeted per year, assigned vs unallocated stacked, with
+// a capacity ceiling drawn as the whole team billing at the standard.
+export function figGroupCapacity(group) {
+  const b = group.budget.filter(r => r.category === 'Project');
+  const years = group.years;
+  const named = new Map(years.map(y => [y, 0]));
+  const unalloc = new Map(years.map(y => [y, 0]));
+  for (const r of b) {
+    (r.unallocated ? unalloc : named).set(r.year, (r.unallocated ? unalloc : named).get(r.year) + r.hours);
+  }
+  const headcount = group.people.length;
+  const capacity = headcount * group.assumptions.billable_hours;
+
+  const x = years.map(String);
+  const traces = [
+    {
+      type: 'bar', name: 'Assigned to a person',
+      x, y: years.map(y => named.get(y)),
+      marker: { color: CATEGORY_COLOURS.Project },
+      hovertemplate: '%{x}: %{y:,.0f} h assigned<extra></extra>',
+    },
+    {
+      type: 'bar', name: 'Unallocated',
+      x, y: years.map(y => unalloc.get(y)),
+      marker: { color: UNALLOCATED_COLOUR, pattern: { shape: '/', fgcolor: '#FFFFFF', size: 6 } },
+      hovertemplate: '%{x}: %{y:,.0f} h unallocated<extra></extra>',
+    },
+  ];
+
+  const layout = {
+    ...baseLayout(
+      'Project hours budgeted, by year',
+      `Hatched bars are hours booked to the group but not yet assigned to a named person. ` +
+      `Rule is ${headcount} researchers at the ${enThousands(group.assumptions.billable_hours)} h billing standard.`,
+      420,
+    ),
+    barmode: 'stack',
+  };
+  layout.yaxis = { ...layout.yaxis, title: { text: 'hours' } };
+  addCapacityZone(layout, capacity, {
+    horizontal: false, label: `${enThousands(capacity)} h billable`,
+  });
+  return { traces, layout };
+}
+
+// Hours registered in one year, split by category, one row per person.
+export function figRegisteredComposition(group, year) {
+  const bins = group.registered_by_category(year);  // Map<person, {Project, Internal, Absence, Other}>
+  const totals = new Map();
+  for (const [p, c] of bins) totals.set(p, CATEGORY_ORDER.reduce((s, k) => s + (c[k] || 0), 0));
+  // sort ascending so the biggest sits at the top of the horizontal bar
+  const order = [...bins.keys()].sort((a, b) => totals.get(a) - totals.get(b));
+
+  const traces = [];
+  for (const cat of CATEGORY_ORDER) {
+    const values = order.map(p => bins.get(p)[cat] || 0);
+    if (values.reduce((s, v) => s + v, 0) === 0) continue;
+    traces.push({
+      type: 'bar', orientation: 'h', name: cat,
+      y: order, x: values,
+      marker: { color: CATEGORY_COLOURS[cat] },
+      hovertemplate: '%{y}<br>' + cat + ': %{x:,.0f} h<extra></extra>',
+    });
+  }
+
+  const frac = yearFraction(group.assumptions, year);
+  const expected = group.assumptions.billable_hours * frac;
+  const height = Math.max(380, 34 * order.length + 130);
+  const layout = {
+    ...baseLayout(
+      `Hours registered in ${year}, by type`,
+      'Project time is stacked first, so the rule reads directly against it. ' +
+      `Billing standard pro-rated to ${Math.round(frac * 100)}% of the working year.`,
+      height,
+    ),
+    barmode: 'stack',
+  };
+  layout.xaxis = { ...layout.xaxis, title: { text: 'hours registered' } };
+  addCapacityZone(layout, expected, { label: `${enThousands(Math.round(expected))} h billable to date` });
+  return { traces, layout };
+}
+
+//
 // One export per Python figure. Each returns { traces, layout } that
 // plot() below hands to Plotly.newPlot. The trace list and the layout
 // bits that carry meaning (categoryarray, menu masks) are snapshotted

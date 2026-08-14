@@ -13,12 +13,14 @@ import { loadExport } from './loader.js';
 import { buildGroup, yearFraction } from './model.js';
 import { boardData, mountBoard } from './board.js';
 import {
+  figGroupCapacity,
   figPersonBudgetStack,
   figPersonBurn,
   figPersonForward,
   figProjectBurn,
   figProjectTeam,
   figProjectTotals,
+  figRegisteredComposition,
   plot,
   resizeAll,
 } from './figures.js';
@@ -325,6 +327,10 @@ function renderPanel(id, label) {
 // Which figures belong on each tab. The Python order per tab is preserved.
 // Signature: (group) => Array<{traces, layout}>.
 const FIGURES_FOR = {
+  overview: (g) => {
+    const y = g.reporting_year;
+    return [figGroupCapacity(g), figRegisteredComposition(g, y)];
+  },
   people: (g) => {
     const y = g.reporting_year;
     return [figPersonBudgetStack(g, y), figPersonBurn(g, y), figPersonForward(g)];

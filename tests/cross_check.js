@@ -111,6 +111,8 @@ function snapshot(g, yearFraction, boardData, figures) {
 function snapshotFigures(g, figures) {
   const year = g.reporting_year;
   return {
+    fig_group_capacity: figureSnapshot(figures.figGroupCapacity(g)),
+    fig_registered_composition: figureSnapshot(figures.figRegisteredComposition(g, year)),
     fig_person_forward: figureSnapshot(figures.figPersonForward(g)),
     fig_person_budget_stack: figureSnapshot(figures.figPersonBudgetStack(g, year)),
     fig_person_burn: figureSnapshot(figures.figPersonBurn(g, year)),
