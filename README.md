@@ -3,7 +3,7 @@
 Turns the CICERO *Timer budsjettert og registrert pr. medarbeider* export into a
 single self-contained HTML dashboard of project hours, budgets and allocation
 across a research group.
-
+ 
 Six views: group capacity by year, per-person allocation and burn, per-project
 teams over time, a deep dive into any one researcher, a person-by-project matrix,
 and a drag-and-drop allocation board for planning meetings.
