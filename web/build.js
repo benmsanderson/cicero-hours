@@ -42,6 +42,15 @@ async function main() {
   const boardCss = await readFile(path.join(root, 'spec', 'board.css'), 'utf8');
   const dropCss = await readFile(path.join(here, 'src', 'drop.css'), 'utf8');
 
+  // Plotly's cartesian bundle: only bar/scatter/heatmap etc, ~1.4 MB minified,
+  // vs 4.9 MB for the full one. That is the difference between an emailable
+  // dashboard and one that bounces off attachment size limits. Inlined so
+  // the page opens offline with no network at all.
+  const plotly = await readFile(
+    path.join(root, 'node_modules', 'plotly.js-cartesian-dist-min', 'plotly-cartesian.min.js'),
+    'utf8',
+  );
+
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -52,6 +61,7 @@ async function main() {
 </head>
 <body>
 <div class="wrap" id="wrap"></div>
+<script>${plotly}</script>
 <script>${js}</script>
 </body>
 </html>`;

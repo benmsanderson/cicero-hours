@@ -6,34 +6,10 @@
 
 import { UNALLOCATED_PERSON } from './rules.js';
 import { yearFraction } from './model.js';
+import { projectColours } from './palette.js';
 
 // Side-effect import: registers window.__cicero_boardInit(DATA).
 import '../../spec/board.js';
-
-// Same palette as figures.py, so the two builds colour identical projects
-// identically. Ochre is reserved for unallocated hours (a hatched block, not
-// a project), so leave that colour out of the project sort here.
-const PROJECT_PALETTE = [
-  '#1F5F6B', '#C98F2B', '#6B4A72', '#4C7A3F', '#B4552F',
-  '#3D6BA5', '#8C7B4B', '#A0466B', '#2E8C8C', '#7A6FA8',
-  '#5E7B8B', '#9C6B3F', '#4F8F6B', '#B07F9B', '#365E4A',
-];
-
-// Stable colour per project, ordered by total budgeted hours descending. Same
-// tie-break as pandas' sort_values ascending=False on the summed hours: it is
-// not stable in the general case, but our sums are unique in practice, and
-// the order is the same as the Python's on the fixture.
-export function projectColours(group) {
-  const totals = new Map();
-  for (const r of group.budget) {
-    if (r.category !== 'Project') continue;
-    totals.set(r.project, (totals.get(r.project) || 0) + r.hours);
-  }
-  const ordered = [...totals.entries()].sort((a, b) => b[1] - a[1]);
-  const out = {};
-  ordered.forEach(([p], i) => { out[p] = PROJECT_PALETTE[i % PROJECT_PALETTE.length]; });
-  return out;
-}
 
 export function boardData(group, planFile = 'allocation_plan.txt') {
   const projectRows = group.budget.filter(r => r.category === 'Project' && r.hours > 0);

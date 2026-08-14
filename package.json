@@ -11,6 +11,7 @@
   },
   "devDependencies": {
     "esbuild": "^0.28.2",
-    "jsdom": "^26.1.0"
+    "jsdom": "^26.1.0",
+    "plotly.js-cartesian-dist-min": "^3.7.0"
   }
 }

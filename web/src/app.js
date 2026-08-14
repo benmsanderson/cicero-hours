@@ -13,6 +13,13 @@ import { loadExport } from './loader.js';
 import { buildGroup, yearFraction } from './model.js';
 import { boardData, mountBoard } from './board.js';
 import {
+  figPersonBudgetStack,
+  figPersonBurn,
+  figPersonForward,
+  plot,
+  resizeAll,
+} from './figures.js';
+import {
   BILLABLE_HOURS_DEFAULT,
   UNALLOCATED_PERSON,
 } from './rules.js';
@@ -210,7 +217,8 @@ function renderDashboard() {
   showTab(state.currentTab || TABS[0][0]);
   wireAsOf();
 
-  // Now that the board panel is in the DOM, hand its skeleton to the runtime.
+  // Now that the panels are in the DOM, hand each one to its renderer.
+  mountFigures(g);
   mountBoard(document.getElementById('board'), boardData(g));
 }
 
@@ -302,13 +310,37 @@ function renderNav(tabs) {
 function renderPanel(id, label) {
   const panel = el('div', { class: 'panel', id, role: 'tabpanel' });
   // The board panel is populated by mountBoard once the DOM is attached;
-  // the figure panels stay placeholder text until Phase 6 fills them in.
-  if (id !== 'board') {
+  // figure panels are filled by mountFigures after the DOM is attached.
+  if (id !== 'board' && !FIGURES_FOR[id]) {
     panel.appendChild(el('div', { class: 'placeholder' },
       `${label} will populate in a later phase of the port.`,
     ));
   }
   return panel;
+}
+
+// Which figures belong on each tab. The Python order per tab is preserved.
+// Signature: (group) => Array<{traces, layout}>.
+const FIGURES_FOR = {
+  people: (g) => {
+    const y = g.reporting_year;
+    return [figPersonBudgetStack(g, y), figPersonBurn(g, y), figPersonForward(g)];
+  },
+};
+
+function mountFigures(g) {
+  for (const [id, build] of Object.entries(FIGURES_FOR)) {
+    const panel = document.getElementById(id);
+    if (!panel) continue;
+    panel.replaceChildren();
+    for (const spec of build(g)) {
+      const card = el('section', { class: 'card' });
+      const target = el('div', { class: 'js-plot' });
+      card.appendChild(target);
+      panel.appendChild(card);
+      plot(target, spec);
+    }
+  }
 }
 
 function renderNotes(g, year, frac) {
@@ -386,6 +418,10 @@ function showTab(id) {
   tabs.forEach(t => t.setAttribute('aria-selected', String(t.dataset.target === id)));
   panels.forEach(p => p.setAttribute('data-active', String(p.id === id)));
   try { history.replaceState(null, '', '#' + id); } catch { /* file:// URLs */ }
+  // Plotly cannot size a chart while its container is hidden, so resize
+  // whatever plots the newly-visible tab holds.
+  const panel = document.getElementById(id);
+  if (panel) resizeAll(panel);
 }
 
 function wireAsOf() {

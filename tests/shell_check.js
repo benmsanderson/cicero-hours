@@ -15,7 +15,10 @@ if (!htmlPath || !csvPath) {
   process.exit(2);
 }
 
-const html = fs.readFileSync(htmlPath, 'utf8');
+// Strip the inlined Plotly bundle: over a megabyte of canvas code jsdom
+// cannot run, and the shell exercises the layout not the pixels.
+const html = fs.readFileSync(htmlPath, 'utf8')
+  .replace(/<script>[\s\S]*?Plotly[\s\S]*?<\/script>/, '<script></script>');
 const csv = fs.readFileSync(csvPath, 'utf8');
 
 const vc = new VirtualConsole();

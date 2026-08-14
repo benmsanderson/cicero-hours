@@ -173,6 +173,309 @@
   "excluded": [
     "Alan Turing"
   ],
+  "figures": {
+    "fig_person_budget_stack": {
+      "layout": {
+        "annotation_texts": [
+          "1,250 h billing standard"
+        ],
+        "barmode": "stack",
+        "height": 280,
+        "shape_count": 2,
+        "yaxis_categoryarray": [
+          "Grace Hopper",
+          "Ada Lovelace"
+        ],
+        "yaxis_categoryorder": "array"
+      },
+      "menus": [
+        {
+          "height": 280,
+          "label": "2026",
+          "title_text": "<b>Hours budgeted per person, 2026</b><br><span style=\"font-size:12px;color:#6A7683\">Largest 6 projects each, labelled where they fit; the rest pooled in grey. 'Forsker Climate Mitigation' is unassigned group time.</span>",
+          "visible": [
+            true,
+            true,
+            false
+          ],
+          "yaxis_categoryarray": [
+            "Grace Hopper",
+            "Ada Lovelace"
+          ]
+        },
+        {
+          "height": 280,
+          "label": "2027",
+          "title_text": "<b>Hours budgeted per person, 2027</b><br><span style=\"font-size:12px;color:#6A7683\">Largest 6 projects each, labelled where they fit; the rest pooled in grey. 'Forsker Climate Mitigation' is unassigned group time.</span>",
+          "visible": [
+            false,
+            false,
+            true
+          ],
+          "yaxis_categoryarray": [
+            "Ada Lovelace",
+            "Forsker Climate Mitigation"
+          ]
+        }
+      ],
+      "traces": [
+        {
+          "marker": {
+            "color": "#1F5F6B"
+          },
+          "name": "ALPHA",
+          "orientation": "h",
+          "type": "bar",
+          "visible": true,
+          "x": [
+            800
+          ],
+          "y": [
+            "Ada Lovelace"
+          ]
+        },
+        {
+          "marker": {
+            "color": "#C98F2B"
+          },
+          "name": "BETA",
+          "orientation": "h",
+          "type": "bar",
+          "visible": true,
+          "x": [
+            500
+          ],
+          "y": [
+            "Grace Hopper"
+          ]
+        },
+        {
+          "marker": {
+            "color": "#1F5F6B"
+          },
+          "name": "ALPHA",
+          "orientation": "h",
+          "type": "bar",
+          "visible": false,
+          "x": [
+            400,
+            600
+          ],
+          "y": [
+            "Ada Lovelace",
+            "Forsker Climate Mitigation"
+          ]
+        }
+      ]
+    },
+    "fig_person_burn": {
+      "layout": {
+        "annotation_texts": [],
+        "barmode": "overlay",
+        "height": 280,
+        "shape_count": 0,
+        "yaxis_categoryarray": [
+          "Grace Hopper",
+          "Ada Lovelace"
+        ],
+        "yaxis_categoryorder": "array"
+      },
+      "menus": [
+        {
+          "height": 280,
+          "label": "2026",
+          "title_text": "<b>Project time against plan, 2026</b><br><span style=\"font-size:12px;color:#6A7683\">Absence and internal time excluded. Tick marks the straight-line expectation at 50% of 2026's working year.</span>",
+          "visible": [
+            true,
+            true,
+            true,
+            false,
+            false,
+            false
+          ],
+          "yaxis_categoryarray": [
+            "Grace Hopper",
+            "Ada Lovelace"
+          ]
+        },
+        {
+          "height": 280,
+          "label": "2027",
+          "title_text": "<b>Project time against plan, 2027</b><br><span style=\"font-size:12px;color:#6A7683\">Absence and internal time excluded. Nothing is booked to 2027 yet, so the bars are the budget as it stands.</span>",
+          "visible": [
+            false,
+            false,
+            false,
+            true,
+            true,
+            true
+          ],
+          "yaxis_categoryarray": [
+            "Ada Lovelace"
+          ]
+        }
+      ],
+      "traces": [
+        {
+          "legendgroup": "budget",
+          "marker": {
+            "color": "#A9B7C2"
+          },
+          "name": "Budgeted for 2026",
+          "orientation": "h",
+          "type": "bar",
+          "visible": true,
+          "x": [
+            500,
+            800
+          ],
+          "y": [
+            "Grace Hopper",
+            "Ada Lovelace"
+          ]
+        },
+        {
+          "legendgroup": "registered",
+          "marker": {
+            "color": "#1F5F6B"
+          },
+          "name": "Registered so far",
+          "orientation": "h",
+          "type": "bar",
+          "visible": true,
+          "x": [
+            200.0,
+            400.0
+          ],
+          "y": [
+            "Grace Hopper",
+            "Ada Lovelace"
+          ]
+        },
+        {
+          "legendgroup": "onplan",
+          "mode": "markers",
+          "name": "On plan at this date",
+          "type": "scatter",
+          "visible": true,
+          "x": [
+            249.042146,
+            398.467433
+          ],
+          "y": [
+            "Grace Hopper",
+            "Ada Lovelace"
+          ]
+        },
+        {
+          "legendgroup": "budget",
+          "marker": {
+            "color": "#A9B7C2"
+          },
+          "name": "Budgeted for 2027",
+          "orientation": "h",
+          "type": "bar",
+          "visible": false,
+          "x": [
+            400
+          ],
+          "y": [
+            "Ada Lovelace"
+          ]
+        },
+        {
+          "legendgroup": "registered",
+          "marker": {
+            "color": "#1F5F6B"
+          },
+          "name": "Registered so far",
+          "orientation": "h",
+          "type": "bar",
+          "visible": false,
+          "x": [
+            0.0
+          ],
+          "y": [
+            "Ada Lovelace"
+          ]
+        },
+        {
+          "legendgroup": "onplan",
+          "mode": "markers",
+          "name": "On plan at this date",
+          "type": "scatter",
+          "visible": false,
+          "x": [
+            0.0
+          ],
+          "y": [
+            "Ada Lovelace"
+          ]
+        }
+      ]
+    },
+    "fig_person_forward": {
+      "layout": {
+        "annotation_texts": [
+          "1,250 h billing standard"
+        ],
+        "barmode": "group",
+        "height": 420,
+        "shape_count": 2
+      },
+      "menus": [],
+      "traces": [
+        {
+          "marker": {
+            "color": "#1F5F6B"
+          },
+          "name": "2026",
+          "orientation": "h",
+          "type": "bar",
+          "x": [
+            500.0,
+            800.0
+          ],
+          "y": [
+            "Grace Hopper",
+            "Ada Lovelace"
+          ]
+        },
+        {
+          "marker": {
+            "color": "#6B4A72"
+          },
+          "name": "2027",
+          "orientation": "h",
+          "type": "bar",
+          "x": [
+            0.0,
+            400.0
+          ],
+          "y": [
+            "Grace Hopper",
+            "Ada Lovelace"
+          ]
+        },
+        {
+          "marker": {
+            "color": "#4C7A3F"
+          },
+          "name": "2028",
+          "orientation": "h",
+          "type": "bar",
+          "x": [
+            0.0,
+            0.0
+          ],
+          "y": [
+            "Grace Hopper",
+            "Ada Lovelace"
+          ]
+        }
+      ]
+    }
+  },
   "group_tag": "Utslippsreduksjon / Climate Mitigation",
   "nonproject_by_person_task": {
     "2026": [

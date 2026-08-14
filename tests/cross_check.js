@@ -28,6 +28,7 @@ const AS_OF = '2026-07-02';
   const { buildGroup, yearFraction } = await import('../web/src/model.js');
   const { boardData } = await import('../web/src/board.js');
   const { BILLABLE_HOURS_DEFAULT } = await import('../web/src/rules.js');
+  const figures = await import('../web/src/figures.js');
 
   const text = fs.readFileSync(csvPath, 'utf8');
   const raw = loadExport(text);
@@ -36,7 +37,7 @@ const AS_OF = '2026-07-02';
     billable_hours: BILLABLE_HOURS_DEFAULT,
   });
 
-  const actual = snapshot(group, yearFraction, boardData);
+  const actual = snapshot(group, yearFraction, boardData, figures);
   const expected = JSON.parse(fs.readFileSync(EXPECTED_PATH, 'utf8'));
 
   const diffs = [];
@@ -76,7 +77,7 @@ function roundLeaves(v) {
   return v;
 }
 
-function snapshot(g, yearFraction, boardData) {
+function snapshot(g, yearFraction, boardData, figures) {
   const years = g.years;
   const personSummary = {};
   for (const y of years) personSummary[String(y)] = g.person_summary(y);
@@ -101,7 +102,67 @@ function snapshot(g, yearFraction, boardData) {
     project_summary: g.project_summary(),
     nonproject_by_person_task: nonproject,
     board: boardData(g),
+    figures: snapshotFigures(g, figures),
   });
+}
+
+// Same shape as _figure_snapshot in scripts/emit_expected.py. Only the semantic
+// fields go through; hovertemplates and cosmetic layout knobs are noise.
+function snapshotFigures(g, figures) {
+  const year = g.reporting_year;
+  return {
+    fig_person_forward: figureSnapshot(figures.figPersonForward(g)),
+    fig_person_budget_stack: figureSnapshot(figures.figPersonBudgetStack(g, year)),
+    fig_person_burn: figureSnapshot(figures.figPersonBurn(g, year)),
+  };
+}
+
+function figureSnapshot({ traces, layout }) {
+  const traceOut = traces.map(t => {
+    const rec = { type: t.type ?? null, name: t.name ?? null };
+    for (const k of ['orientation', 'mode', 'visible', 'legendgroup', 'offsetgroup', 'xaxis', 'yaxis']) {
+      if (t[k] !== undefined && t[k] !== null) rec[k] = t[k];
+    }
+    for (const k of ['x', 'y']) {
+      if (k in t) rec[k] = t[k] === null ? null : Array.from(t[k]);
+    }
+    if (t.marker && typeof t.marker === 'object') {
+      const m = {};
+      if ('color' in t.marker) m.color = t.marker.color;
+      const pat = t.marker.pattern;
+      if (pat && typeof pat === 'object' && pat.shape) m.pattern_shape = pat.shape;
+      if (Object.keys(m).length) rec.marker = m;
+    }
+    return rec;
+  });
+
+  const layoutOut = {
+    barmode: layout.barmode ?? null,
+    height: layout.height ?? null,
+  };
+  const yaxis = layout.yaxis || {};
+  if (yaxis.categoryorder) layoutOut.yaxis_categoryorder = yaxis.categoryorder;
+  if (yaxis.categoryarray) layoutOut.yaxis_categoryarray = Array.from(yaxis.categoryarray);
+  layoutOut.shape_count = (layout.shapes || []).length;
+  layoutOut.annotation_texts = (layout.annotations || []).map(a => String(a.text ?? ''));
+
+  const menus = [];
+  for (const m of layout.updatemenus || []) {
+    for (const b of m.buttons || []) {
+      const entry = { label: b.label ?? null };
+      const args = b.args || [];
+      if (args[0] && 'visible' in args[0]) entry.visible = Array.from(args[0].visible);
+      if (args[1]) {
+        if (args[1]['yaxis.categoryarray']) {
+          entry.yaxis_categoryarray = Array.from(args[1]['yaxis.categoryarray']);
+        }
+        if (args[1]['title.text']) entry.title_text = args[1]['title.text'];
+        if (args[1].height !== undefined) entry.height = args[1].height;
+      }
+      menus.push(entry);
+    }
+  }
+  return { traces: traceOut, layout: layoutOut, menus };
 }
 
 // ------------------------------ deep compare ---------------------------------

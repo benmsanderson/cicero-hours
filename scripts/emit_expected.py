@@ -17,6 +17,7 @@ numbers moved.
 
 from __future__ import annotations
 
+import base64
 import datetime as dt
 import json
 import math
@@ -31,6 +32,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
+from cicero_hours import figures as F  # noqa: E402
 from cicero_hours._rules import BILLABLE_HOURS_DEFAULT  # noqa: E402
 from cicero_hours.board import board_data  # noqa: E402
 from cicero_hours.loader import load_export  # noqa: E402
@@ -83,6 +85,98 @@ def _records(df: pd.DataFrame) -> list[dict]:
     ]
 
 
+def _decode_array(v):
+    """Plotly's to_dict() encodes numpy arrays as {'dtype': 'f8', 'bdata': ...}
+    (base64 of the raw bytes). Turn that back into a plain list so the
+    JavaScript output can be compared to it row for row."""
+    if isinstance(v, dict) and "bdata" in v and "dtype" in v:
+        return list(np.frombuffer(base64.b64decode(v["bdata"]), dtype=v["dtype"]))
+    return v
+
+
+def _figure_snapshot(fig) -> dict:
+    """A compact, JSON-safe view of what the figure will actually draw.
+
+    Not fig.to_dict() as-is: that carries plotly defaults and hover strings that
+    the JS mirror does not need to match verbatim. Snapshot the shape (trace
+    type, orientation, name), the numeric data (x, y) and the semantic layout
+    bits (barmode, category order, menu masks, capacity zone counts) so the
+    cross-check catches a real disagreement without flagging cosmetic ones.
+    """
+    d = fig.to_dict()
+    traces = []
+    for t in d.get("data", []):
+        rec = {
+            "type": t.get("type"),
+            "name": t.get("name"),
+        }
+        for k in ("orientation", "mode", "visible", "legendgroup", "offsetgroup", "xaxis", "yaxis"):
+            if k in t and t.get(k) is not None:
+                rec[k] = t[k]
+        for k in ("x", "y"):
+            if k in t:
+                decoded = _decode_array(t[k])
+                rec[k] = None if decoded is None else [_jsonable(v) for v in decoded]
+        # Hatched (unallocated) marker segments matter for reading the bar; the
+        # colour value is stable per-project and worth pinning too.
+        marker = t.get("marker") or {}
+        if isinstance(marker, dict):
+            mrec = {}
+            if "color" in marker:
+                mrec["color"] = marker["color"]
+            pattern = marker.get("pattern") or {}
+            if isinstance(pattern, dict) and pattern.get("shape"):
+                mrec["pattern_shape"] = pattern["shape"]
+            if mrec:
+                rec["marker"] = mrec
+        traces.append(rec)
+
+    layout_in = d.get("layout", {}) or {}
+    layout = {
+        "barmode": layout_in.get("barmode"),
+        "height": layout_in.get("height"),
+    }
+    yaxis = layout_in.get("yaxis") or {}
+    if isinstance(yaxis, dict):
+        if yaxis.get("categoryorder"):
+            layout["yaxis_categoryorder"] = yaxis["categoryorder"]
+        if yaxis.get("categoryarray") is not None:
+            layout["yaxis_categoryarray"] = list(yaxis["categoryarray"])
+    shapes = layout_in.get("shapes") or []
+    layout["shape_count"] = len(shapes)
+    annotations = layout_in.get("annotations") or []
+    layout["annotation_texts"] = [str(a.get("text", "")) for a in annotations]
+
+    menus = []
+    for m in layout_in.get("updatemenus") or []:
+        for b in m.get("buttons") or []:
+            entry = {"label": b.get("label")}
+            args = b.get("args") or []
+            if args:
+                if isinstance(args[0], dict) and "visible" in args[0]:
+                    entry["visible"] = list(args[0]["visible"])
+                if len(args) > 1 and isinstance(args[1], dict):
+                    l1 = args[1]
+                    if "yaxis.categoryarray" in l1:
+                        entry["yaxis_categoryarray"] = list(l1["yaxis.categoryarray"])
+                    if "title.text" in l1:
+                        entry["title_text"] = l1["title.text"]
+                    if "height" in l1:
+                        entry["height"] = l1["height"]
+            menus.append(entry)
+    return {"traces": traces, "layout": layout, "menus": menus}
+
+
+def _snapshot_figures(g: Group, year: int) -> dict:
+    """Build every figure the dashboard shows and snapshot it."""
+    return {
+        # People tab
+        "fig_person_forward": _figure_snapshot(F.fig_person_forward(g)),
+        "fig_person_budget_stack": _figure_snapshot(F.fig_person_budget_stack(g, year)),
+        "fig_person_burn": _figure_snapshot(F.fig_person_burn(g, year)),
+    }
+
+
 def _snapshot_group(g: Group) -> dict:
     years = g.years
     return {
@@ -105,6 +199,7 @@ def _snapshot_group(g: Group) -> dict:
             str(y): _records(g.nonproject_by_person_task(y)) for y in years
         },
         "board": _jsonable(board_data(g)),
+        "figures": _snapshot_figures(g, g.reporting_year),
     }
 
 

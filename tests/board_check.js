@@ -41,13 +41,11 @@ function quietConsole() {
   return vc;
 }
 
-// The Python build inlines megabytes of Plotly canvas code jsdom cannot run,
-// so strip that <script> before parsing. The web build does not inline Plotly
-// yet (Phase 6), and its own bundle contains the word "Plotly" only in a
-// typeof guard, so leave that intact.
-const stripped = isWeb
-  ? html
-  : html.replace(/<script>[\s\S]*?Plotly[\s\S]*?<\/script>/, "<script></script>");
+// Strip the Plotly bundle: over a megabyte of canvas code jsdom cannot run.
+// The regex is non-greedy and matches only once, so it strips the vendor
+// bundle in either build and leaves the app bundle (which mentions Plotly
+// only in a typeof guard) intact.
+const stripped = html.replace(/<script>[\s\S]*?Plotly[\s\S]*?<\/script>/, "<script></script>");
 
 async function buildDom(extraBeforeParse) {
   const dom = new JSDOM(stripped, {
