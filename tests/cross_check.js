@@ -119,6 +119,7 @@ function snapshotFigures(g, figures) {
     fig_project_totals: figureSnapshot(figures.figProjectTotals(g)),
     fig_project_team: figureSnapshot(figures.figProjectTeam(g)),
     fig_project_burn: figureSnapshot(figures.figProjectBurn(g, year)),
+    fig_person_deep_dive: figureSnapshot(figures.figPersonDeepDive(g, year)),
   };
 }
 

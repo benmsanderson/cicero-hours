@@ -16,6 +16,7 @@ import {
   figGroupCapacity,
   figPersonBudgetStack,
   figPersonBurn,
+  figPersonDeepDive,
   figPersonForward,
   figProjectBurn,
   figProjectTeam,
@@ -339,6 +340,7 @@ const FIGURES_FOR = {
     const y = g.reporting_year;
     return [figProjectTotals(g), figProjectTeam(g), figProjectBurn(g, y)];
   },
+  deepdive: (g) => [figPersonDeepDive(g, g.reporting_year)],
 };
 
 function mountFigures(g) {

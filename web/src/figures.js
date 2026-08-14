@@ -635,6 +635,222 @@ export function figProjectBurn(group, year, { minHours = 50.0 } = {}) {
   return { traces, layout };
 }
 
+// -------------------------------------------------------- one researcher
+
+function restHeading(mine, year) {
+  if (!mine.length) return `The rest of ${year}: nothing booked outside projects`;
+  const byCat = new Map();
+  for (const r of mine) byCat.set(r.category, (byCat.get(r.category) || 0) + r.hours);
+  const bits = [...byCat.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([cat, h]) => `${enThousands(Math.round(h))} h ${cat.toLowerCase()}`);
+  return `The rest of ${year}: ${bits.join(' · ')}, by task`;
+}
+
+// The reader's deep dive: budget vs booked on the left, commitments over
+// years on the right, everything else the person booked (internal, absence,
+// with the task string labelled from Norwegian to English) along the bottom.
+export function figPersonDeepDive(group, year) {
+  const summary = group.person_summary(year);
+  const people = summary.map(r => r.person);
+  const budgetRows = group.budget_by_person_project(year);
+  const regRows = group.registered_by_person_project(year);
+  const forwardRows = group.budget.filter(r => r.category === 'Project');
+  const colours = projectColours(group);
+  const frac = yearFraction(group.assumptions, year);
+  const years = group.years;
+
+  const rest = group.nonproject_by_person_task(year).map(r => ({ ...r, label: taskLabel(r.task) }));
+  const taskCount = new Map();
+  for (const r of rest) taskCount.set(r.person, (taskCount.get(r.person) || 0) + 1);
+  const maxTasks = taskCount.size ? Math.max(...taskCount.values()) : 0;
+  const bottom = Math.max(130, 21 * maxTasks);
+
+  const traces = [];
+  const owner = [];
+
+  for (const person of people) {
+    const visible = person === people[0];
+
+    // Left panel: budget for this person, sorted ascending
+    const bp = budgetRows.filter(r => r.person === person).slice()
+      .sort((a, b) => a.hours - b.hours);
+    const rmap = new Map(
+      regRows.filter(r => r.person === person).map(r => [r.project, r.hours])
+    );
+    const projs = bp.map(r => r.project);
+    const budgetVals = bp.map(r => r.hours);
+    const bookedVals = projs.map(p => rmap.get(p) ?? 0);
+    const onPlan = budgetVals.map(v => v * frac);
+
+    traces.push({
+      type: 'bar', orientation: 'h', name: 'Budgeted',
+      y: projs, x: budgetVals,
+      marker: { color: BUDGET_COLOUR }, visible,
+      legendgroup: 'budget', offsetgroup: 'budget',
+      hovertemplate: '%{y}<br>budgeted: %{x:,.0f} h<extra></extra>',
+      xaxis: 'x', yaxis: 'y',
+    });
+    owner.push(person);
+    traces.push({
+      type: 'bar', orientation: 'h', name: 'Booked',
+      y: projs, x: bookedVals,
+      marker: { color: REGISTERED_COLOUR }, visible,
+      legendgroup: 'booked', offsetgroup: 'booked',
+      hovertemplate: '%{y}<br>booked: %{x:,.0f} h<extra></extra>',
+      xaxis: 'x', yaxis: 'y',
+    });
+    owner.push(person);
+    traces.push({
+      type: 'scatter', mode: 'markers', name: 'On plan',
+      y: projs, x: onPlan,
+      marker: { symbol: 'line-ns', size: 13, line: { color: ALARM, width: 2 } },
+      visible, legendgroup: 'onplan',
+      hovertemplate: '%{y}<br>on plan: %{x:,.0f} h<extra></extra>',
+      xaxis: 'x', yaxis: 'y',
+    });
+    owner.push(person);
+
+    // Right panel: commitments by year, one trace per project, sorted by total desc.
+    const perProj = new Map();
+    for (const r of forwardRows) {
+      if (r.person !== person) continue;
+      if (!perProj.has(r.project)) perProj.set(r.project, new Map(years.map(y => [y, 0])));
+      const m = perProj.get(r.project);
+      m.set(r.year, m.get(r.year) + r.hours);
+    }
+    const projTotals = new Map();
+    for (const [p, m] of perProj) projTotals.set(p, [...m.values()].reduce((s, v) => s + v, 0));
+    const sortedProjs = [...perProj.keys()].sort((a, b) => projTotals.get(b) - projTotals.get(a));
+    for (const proj of sortedProjs) {
+      const series = years.map(y => perProj.get(proj).get(y));
+      traces.push({
+        type: 'bar', name: proj,
+        x: years.map(String), y: series,
+        marker: { color: colours[proj] || '#8899A6' },
+        visible, showlegend: false, offsetgroup: 'forward',
+        text: years.map(() => shorten(proj, 18)),
+        textposition: 'inside', insidetextanchor: 'middle',
+        insidetextfont: { color: '#FFFFFF', size: 10 },
+        textangle: 0, constraintext: 'inside',
+        hovertemplate: '%{x}<br>' + proj + ': %{y:,.0f} h<extra></extra>',
+        xaxis: 'x2', yaxis: 'y2',
+      });
+      owner.push(person);
+    }
+
+    // Bottom panel: the rest of the year by task. Only the categories this
+    // person actually booked to, so the legend does not promise absence they
+    // never took. CATEGORY_ORDER without the first entry ("Project").
+    const mine = rest.filter(r => r.person === person);
+    for (const cat of CATEGORY_ORDER.slice(1)) {
+      const sub = mine.filter(r => r.category === cat).slice().sort((a, b) => a.hours - b.hours);
+      if (!sub.length) continue;
+      traces.push({
+        type: 'bar', orientation: 'h', name: cat,
+        y: sub.map(r => r.label), x: sub.map(r => r.hours),
+        marker: { color: CATEGORY_COLOURS[cat] }, visible, legendgroup: cat,
+        customdata: sub.map(r => r.task ?? 'no task on the row'),
+        hovertemplate: '%{customdata}<br>' + cat + ': %{x:,.0f} h<extra></extra>',
+        xaxis: 'x3', yaxis: 'y3',
+      });
+      owner.push(person);
+    }
+  }
+
+  const seconds = group.second_groups();
+  const buttons = people.map(person => {
+    const row = summary.find(r => r.person === person);
+    const second = seconds[person];
+    const tail = second ? ` · part-time in ${second.split(' / ').at(-1)}` : '';
+    const mine = rest.filter(r => r.person === person);
+    const nprj = row.n_projects;
+    const projWord = nprj === 1 ? 'project' : 'projects';
+    return {
+      label: person, method: 'update',
+      args: [
+        { visible: owner.map(o => o === person) },
+        {
+          'title.text':
+            `<b>${person}</b><br>` +
+            `<span style="font-size:12px;color:${MUTED}">` +
+            `${enThousands(Math.round(row.project_budget))} h budgeted across ${nprj} ${projWord} in ${year} · ` +
+            `${enThousands(Math.round(row.Project))} h booked · ` +
+            `${enThousands(Math.round(row.Absence))} h absence · ` +
+            `${enThousands(Math.round(row.Internal))} h internal${tail}</span>`,
+          'annotations[2].text': restHeading(mine, year),
+          'yaxis3.categoryarray': mine.slice().sort((a, b) => a.hours - b.hours).map(r => r.label),
+          'xaxis3.visible': mine.length > 0,
+          'yaxis3.visible': mine.length > 0,
+        },
+      ],
+    };
+  });
+
+  const first = summary[0];
+  const firstRest = rest.filter(r => r.person === first.person);
+  const firstNprj = first.n_projects;
+  const firstProjWord = firstNprj === 1 ? 'project' : 'projects';
+  const height = 130 + 90 + Math.round((400 + bottom) / (1 - 0.12));
+
+  // 2×2 subplot layout with the bottom row spanning both columns. plotly.js has
+  // no make_subplots equivalent; the domains are hand-set to leave room for
+  // the subplot titles and the legend under the panels. The trace routing
+  // (xaxis/yaxis on each trace) is what the cross-check pins.
+  const guide = group.assumptions.billable_hours;
+  const layout = {
+    ...baseLayout(
+      first.person,
+      `${enThousands(Math.round(first.project_budget))} h budgeted across ${firstNprj} ${firstProjWord} in ${year}`,
+      height,
+    ),
+    barmode: 'stack',
+    uniformtext: { mode: 'hide', minsize: 9 },
+    margin: { l: 10, r: 20, t: 130, b: 90 },
+    legend: { orientation: 'h', yanchor: 'top', y: -0.1, xanchor: 'left', x: 0, font: { size: 11 }, bgcolor: 'rgba(0,0,0,0)' },
+    updatemenus: [dropdown(buttons, height, 130, { bottom: 90, gap: 92, active: 0 })],
+  };
+
+  const topBottom = 0.42;  // where row 1 begins (fraction of plot area from bottom)
+  const bottomTop = 0.28;  // where row 2 ends
+  layout.xaxis = { ...layout.xaxis, domain: [0, 0.56], title: { text: 'hours' } };
+  layout.yaxis = { ...layout.yaxis, domain: [topBottom, 1], tickfont: { size: 11 } };
+  layout.xaxis2 = { domain: [0.69, 1], anchor: 'y2', gridcolor: HAIRLINE, zerolinecolor: HAIRLINE, linecolor: HAIRLINE };
+  layout.yaxis2 = { domain: [topBottom, 1], anchor: 'x2', gridcolor: HAIRLINE, zerolinecolor: HAIRLINE, linecolor: HAIRLINE, title: { text: 'hours budgeted' } };
+  layout.xaxis3 = { domain: [0, 1], anchor: 'y3', gridcolor: HAIRLINE, zerolinecolor: HAIRLINE, linecolor: HAIRLINE, title: { text: 'hours registered' }, visible: firstRest.length > 0 };
+  layout.yaxis3 = {
+    domain: [0, bottomTop], anchor: 'x3', gridcolor: HAIRLINE, zerolinecolor: HAIRLINE, linecolor: HAIRLINE,
+    tickfont: { size: 10.5 }, automargin: true,
+    categoryorder: 'array', categoryarray: firstRest.slice().sort((a, b) => a.hours - b.hours).map(r => r.label),
+    visible: firstRest.length > 0,
+  };
+
+  // Subplot titles as annotations. Kept in this order so the picker's
+  // `annotations[2].text` targets the bottom panel title.
+  layout.annotations.push(
+    { xref: 'x domain', yref: 'y domain', x: 0.5, y: 1.06, xanchor: 'center', yanchor: 'bottom',
+      text: `${year}: budget against hours booked`, showarrow: false, font: { size: 13 } },
+    { xref: 'x2 domain', yref: 'y2 domain', x: 0.5, y: 1.06, xanchor: 'center', yanchor: 'bottom',
+      text: 'Commitments by year', showarrow: false, font: { size: 13 } },
+    { xref: 'x3 domain', yref: 'y3 domain', x: 0.5, y: 1.06, xanchor: 'center', yanchor: 'bottom',
+      text: restHeading(firstRest, year), showarrow: false, font: { size: 13 } },
+  );
+  // Capacity hline on the right panel; keep as one more shape+annotation.
+  layout.shapes.push({
+    type: 'line', xref: 'x2 domain', yref: 'y2',
+    x0: 0, x1: 1, y0: guide, y1: guide,
+    line: { color: ALARM, width: 1.4, dash: 'dot' },
+  });
+  layout.annotations.push({
+    xref: 'x2 domain', yref: 'y2',
+    x: 0, y: guide, xanchor: 'left', yanchor: 'bottom',
+    text: `${enThousands(guide)} h`, showarrow: false,
+    font: { size: 11, color: ALARM },
+  });
+
+  return { traces, layout };
+}
+
 // ============================================================ plot()
 
 // Turn a { traces, layout } spec into a live plotly plot inside `element`.

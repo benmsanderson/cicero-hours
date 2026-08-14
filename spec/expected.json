@@ -462,6 +462,243 @@
         }
       ]
     },
+    "fig_person_deep_dive": {
+      "layout": {
+        "annotation_texts": [
+          "2026: budget against hours booked",
+          "Commitments by year",
+          "The rest of 2026: nothing booked outside projects",
+          "1,250 h"
+        ],
+        "barmode": "stack",
+        "height": 822,
+        "shape_count": 1
+      },
+      "menus": [
+        {
+          "label": "Ada Lovelace",
+          "title_text": "<b>Ada Lovelace</b><br><span style=\"font-size:12px;color:#6A7683\">800 h budgeted across 1 project in 2026 · 400 h booked · 0 h absence · 0 h internal</span>",
+          "visible": [
+            true,
+            true,
+            true,
+            true,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "label": "Grace Hopper",
+          "title_text": "<b>Grace Hopper</b><br><span style=\"font-size:12px;color:#6A7683\">500 h budgeted across 1 project in 2026 · 200 h booked · 210 h absence · 210 h internal · part-time in Atmospheric Sciences</span>",
+          "visible": [
+            false,
+            false,
+            false,
+            false,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true
+          ]
+        }
+      ],
+      "traces": [
+        {
+          "legendgroup": "budget",
+          "marker": {
+            "color": "#A9B7C2"
+          },
+          "name": "Budgeted",
+          "offsetgroup": "budget",
+          "orientation": "h",
+          "type": "bar",
+          "visible": true,
+          "x": [
+            800
+          ],
+          "xaxis": "x",
+          "y": [
+            "ALPHA"
+          ],
+          "yaxis": "y"
+        },
+        {
+          "legendgroup": "booked",
+          "marker": {
+            "color": "#1F5F6B"
+          },
+          "name": "Booked",
+          "offsetgroup": "booked",
+          "orientation": "h",
+          "type": "bar",
+          "visible": true,
+          "x": [
+            400.0
+          ],
+          "xaxis": "x",
+          "y": [
+            "ALPHA"
+          ],
+          "yaxis": "y"
+        },
+        {
+          "legendgroup": "onplan",
+          "mode": "markers",
+          "name": "On plan",
+          "type": "scatter",
+          "visible": true,
+          "x": [
+            398.467433
+          ],
+          "xaxis": "x",
+          "y": [
+            "ALPHA"
+          ],
+          "yaxis": "y"
+        },
+        {
+          "marker": {
+            "color": "#1F5F6B"
+          },
+          "name": "ALPHA",
+          "offsetgroup": "forward",
+          "type": "bar",
+          "visible": true,
+          "x": [
+            "2026",
+            "2027",
+            "2028"
+          ],
+          "xaxis": "x2",
+          "y": [
+            800.0,
+            400.0,
+            0.0
+          ],
+          "yaxis": "y2"
+        },
+        {
+          "legendgroup": "budget",
+          "marker": {
+            "color": "#A9B7C2"
+          },
+          "name": "Budgeted",
+          "offsetgroup": "budget",
+          "orientation": "h",
+          "type": "bar",
+          "visible": false,
+          "x": [
+            500
+          ],
+          "xaxis": "x",
+          "y": [
+            "BETA"
+          ],
+          "yaxis": "y"
+        },
+        {
+          "legendgroup": "booked",
+          "marker": {
+            "color": "#1F5F6B"
+          },
+          "name": "Booked",
+          "offsetgroup": "booked",
+          "orientation": "h",
+          "type": "bar",
+          "visible": false,
+          "x": [
+            200.0
+          ],
+          "xaxis": "x",
+          "y": [
+            "BETA"
+          ],
+          "yaxis": "y"
+        },
+        {
+          "legendgroup": "onplan",
+          "mode": "markers",
+          "name": "On plan",
+          "type": "scatter",
+          "visible": false,
+          "x": [
+            249.042146
+          ],
+          "xaxis": "x",
+          "y": [
+            "BETA"
+          ],
+          "yaxis": "y"
+        },
+        {
+          "marker": {
+            "color": "#C98F2B"
+          },
+          "name": "BETA",
+          "offsetgroup": "forward",
+          "type": "bar",
+          "visible": false,
+          "x": [
+            "2026",
+            "2027",
+            "2028"
+          ],
+          "xaxis": "x2",
+          "y": [
+            500.0,
+            0.0,
+            0.0
+          ],
+          "yaxis": "y2"
+        },
+        {
+          "legendgroup": "Internal",
+          "marker": {
+            "color": "#7E8FA0"
+          },
+          "name": "Internal",
+          "orientation": "h",
+          "type": "bar",
+          "visible": false,
+          "x": [
+            60.0,
+            150.0
+          ],
+          "xaxis": "x3",
+          "y": [
+            "Project Development and Acquisition - Research funding",
+            "Operations"
+          ],
+          "yaxis": "y3"
+        },
+        {
+          "legendgroup": "Absence",
+          "marker": {
+            "color": "#C6CED6"
+          },
+          "name": "Absence",
+          "orientation": "h",
+          "type": "bar",
+          "visible": false,
+          "x": [
+            22.5,
+            187.5
+          ],
+          "xaxis": "x3",
+          "y": [
+            "Sick Leave (Self-Certified)",
+            "Ferie"
+          ],
+          "yaxis": "y3"
+        }
+      ]
+    },
     "fig_person_forward": {
       "layout": {
         "annotation_texts": [
