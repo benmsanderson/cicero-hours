@@ -375,6 +375,181 @@ export function figPersonForward(group) {
   return { traces, layout };
 }
 
+// ---------------------------------------------------------- projects
+
+// Budgeted hours per project, one row per project. Two bars per year: the
+// named budget in solid colour, the unallocated portion hatched, and both
+// share a legend group so a click toggles them together.
+export function figProjectTotals(group, { minHours = 100.0 } = {}) {
+  const ps = group.project_summary();
+  // totals per project
+  const totals = new Map();
+  for (const r of ps) totals.set(r.project, (totals.get(r.project) || 0) + r.budget_total);
+  // Keep projects with total >= minHours, sort ascending so the largest sits at
+  // the top of the horizontal bar.
+  const keep = [...totals.entries()]
+    .filter(([, t]) => t >= minHours)
+    .sort((a, b) => a[1] - b[1])
+    .map(([p]) => p);
+
+  const years = [...new Set(ps.map(r => r.year))].sort((a, b) => a - b);
+  const colours = yearColours(years);
+
+  // Index (project, year) -> row
+  const idx = new Map();
+  for (const r of ps) idx.set(`${r.project} ${r.year}`, r);
+  const named = (proj, y) => idx.get(`${proj} ${y}`)?.budget_named ?? 0;
+  const unalloc = (proj, y) => idx.get(`${proj} ${y}`)?.budget_unallocated ?? 0;
+
+  const traces = [];
+  for (const y of years) {
+    const colour = colours[y];
+    traces.push({
+      type: 'bar', orientation: 'h', name: String(y),
+      y: keep, x: keep.map(p => named(p, y)),
+      marker: { color: colour }, legendgroup: String(y),
+      hovertemplate: '%{y}<br>' + y + ' assigned: %{x:,.0f} h<extra></extra>',
+    });
+    traces.push({
+      type: 'bar', orientation: 'h', name: `${y} unallocated`,
+      y: keep, x: keep.map(p => unalloc(p, y)),
+      marker: { color: colour, pattern: { shape: '/', fgcolor: '#FFFFFF', size: 5 } },
+      legendgroup: String(y), showlegend: false,
+      hovertemplate: '%{y}<br>' + y + ' unallocated: %{x:,.0f} h<extra></extra>',
+    });
+  }
+
+  const height = Math.max(500, 26 * keep.length + 150);
+  const layout = {
+    ...baseLayout(
+      'Budgeted hours per project',
+      `Projects above ${Math.round(minHours)} h in total. Hatched segments are hours ` +
+      'with no name against them yet.',
+      height,
+    ),
+    barmode: 'stack',
+  };
+  layout.xaxis = { ...layout.xaxis, title: { text: 'hours budgeted' } };
+  return { traces, layout };
+}
+
+// One project at a time, chosen from a dropdown: who is on it, by year.
+export function figProjectTeam(group, { minHours = 100.0 } = {}) {
+  const ps = group.project_summary();
+  const totals = new Map();
+  for (const r of ps) totals.set(r.project, (totals.get(r.project) || 0) + r.budget_total);
+  const projects = [...totals.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .filter(([, t]) => t >= minHours)
+    .map(([p]) => p);
+  const years = group.years;
+  const yearStr = years.map(String);
+  const colours = personColours(group, UNALLOCATED_PERSON);
+
+  const traces = [];
+  const traceOwner = [];
+  for (const proj of projects) {
+    const team = group.project_team(proj);
+    // People sorted by total on the project, descending
+    const totalsPerson = new Map();
+    for (const r of team) totalsPerson.set(r.person, (totalsPerson.get(r.person) || 0) + r.hours);
+    const people = [...totalsPerson.entries()].sort((a, b) => b[1] - a[1]).map(([p]) => p);
+    for (const person of people) {
+      const perYear = new Map();
+      for (const y of years) perYear.set(y, 0);
+      for (const r of team) if (r.person === person) perYear.set(r.year, (perYear.get(r.year) || 0) + r.hours);
+      const isUnalloc = person === UNALLOCATED_PERSON;
+      const marker = { color: isUnalloc ? UNALLOCATED_COLOUR : (colours[person] || '#8899A6') };
+      if (isUnalloc) marker.pattern = { shape: '/', fgcolor: '#FFFFFF', size: 6 };
+      traces.push({
+        type: 'bar', name: isUnalloc ? 'Unallocated' : person,
+        x: yearStr, y: years.map(y => perYear.get(y)),
+        visible: proj === projects[0],
+        marker,
+        hovertemplate: '%{x}<br>%{fullData.name}: %{y:,.0f} h<extra></extra>',
+      });
+      traceOwner.push(proj);
+    }
+  }
+
+  // Project manager as read from the summary (mode within project).
+  const pmOf = new Map();
+  for (const r of ps) {
+    if (r.pm !== null && !pmOf.has(r.project)) pmOf.set(r.project, r.pm);
+  }
+  const buttons = projects.map(proj => {
+    const pm = pmOf.get(proj);
+    const pmLabel = pm ? ` · led by ${pm}` : '';
+    return {
+      label: proj.slice(0, 46), method: 'update',
+      args: [
+        { visible: traceOwner.map(o => o === proj) },
+        {
+          'title.text': `<b>Team on ${proj}</b><br>` +
+            `<span style="font-size:12px;color:${MUTED}">` +
+            `Budgeted hours per person per year${pmLabel}</span>`,
+        },
+      ],
+    };
+  });
+
+  const layout = {
+    ...baseLayout('Team on a project', 'Budgeted hours per person per year', 520),
+    barmode: 'stack',
+    margin: { l: 10, r: 20, t: 140, b: 44 },
+    updatemenus: [{
+      buttons, direction: 'down', showactive: true,
+      x: 1, xanchor: 'right', y: 1.28, yanchor: 'top',
+      bgcolor: '#FFFFFF', bordercolor: HAIRLINE, font: { size: 12 },
+    }],
+  };
+  layout.yaxis = { ...layout.yaxis, title: { text: 'hours budgeted' } };
+  return { traces, layout };
+}
+
+// Delivery against budget by project for one year. Sorted by shortfall,
+// so the projects furthest behind their plan sit at the top.
+export function figProjectBurn(group, year, { minHours = 50.0 } = {}) {
+  const ps = group.project_summary().filter(r => r.year === year && r.budget_total >= minHours);
+  const frac = yearFraction(group.assumptions, year);
+  const withGap = ps.map(r => ({ ...r, expected: r.budget_total * frac, gap: r.registered - r.budget_total * frac }));
+  withGap.sort((a, b) => a.gap - b.gap);
+
+  const yaxis = withGap.map(r => r.project);
+  const traces = [
+    {
+      type: 'bar', orientation: 'h', name: 'Budgeted',
+      y: yaxis, x: withGap.map(r => r.budget_total),
+      marker: { color: BUDGET_COLOUR },
+      hovertemplate: '%{y}<br>budgeted: %{x:,.0f} h<extra></extra>',
+    },
+    {
+      type: 'bar', orientation: 'h', name: 'Registered',
+      y: yaxis, x: withGap.map(r => r.registered),
+      marker: { color: REGISTERED_COLOUR }, width: 0.42,
+      hovertemplate: '%{y}<br>registered: %{x:,.0f} h<extra></extra>',
+    },
+    {
+      type: 'scatter', mode: 'markers', name: 'On plan at this date',
+      y: yaxis, x: withGap.map(r => r.expected),
+      marker: { symbol: 'line-ns', size: 14, line: { color: ALARM, width: 2.2 } },
+      hovertemplate: '%{y}<br>on plan: %{x:,.0f} h<extra></extra>',
+    },
+  ];
+
+  const height = Math.max(520, 24 * withGap.length + 150);
+  const layout = {
+    ...baseLayout(
+      `Delivery against budget by project, ${year}`,
+      'Sorted by shortfall. The projects at the top are furthest behind their plan.',
+      height,
+    ),
+    barmode: 'overlay',
+  };
+  layout.xaxis = { ...layout.xaxis, title: { text: 'hours' } };
+  return { traces, layout };
+}
+
 // ============================================================ plot()
 
 // Turn a { traces, layout } spec into a live plotly plot inside `element`.

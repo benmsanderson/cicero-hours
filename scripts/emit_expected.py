@@ -174,6 +174,10 @@ def _snapshot_figures(g: Group, year: int) -> dict:
         "fig_person_forward": _figure_snapshot(F.fig_person_forward(g)),
         "fig_person_budget_stack": _figure_snapshot(F.fig_person_budget_stack(g, year)),
         "fig_person_burn": _figure_snapshot(F.fig_person_burn(g, year)),
+        # Projects tab
+        "fig_project_totals": _figure_snapshot(F.fig_project_totals(g)),
+        "fig_project_team": _figure_snapshot(F.fig_project_team(g)),
+        "fig_project_burn": _figure_snapshot(F.fig_project_burn(g, year)),
     }
 
 

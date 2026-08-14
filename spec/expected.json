@@ -474,6 +474,263 @@
           ]
         }
       ]
+    },
+    "fig_project_burn": {
+      "layout": {
+        "annotation_texts": [],
+        "barmode": "overlay",
+        "height": 520,
+        "shape_count": 0
+      },
+      "menus": [],
+      "traces": [
+        {
+          "marker": {
+            "color": "#A9B7C2"
+          },
+          "name": "Budgeted",
+          "orientation": "h",
+          "type": "bar",
+          "x": [
+            500.0,
+            800.0
+          ],
+          "y": [
+            "BETA",
+            "ALPHA"
+          ]
+        },
+        {
+          "marker": {
+            "color": "#1F5F6B"
+          },
+          "name": "Registered",
+          "orientation": "h",
+          "type": "bar",
+          "x": [
+            200.0,
+            400.0
+          ],
+          "y": [
+            "BETA",
+            "ALPHA"
+          ]
+        },
+        {
+          "mode": "markers",
+          "name": "On plan at this date",
+          "type": "scatter",
+          "x": [
+            249.042146,
+            398.467433
+          ],
+          "y": [
+            "BETA",
+            "ALPHA"
+          ]
+        }
+      ]
+    },
+    "fig_project_team": {
+      "layout": {
+        "annotation_texts": [],
+        "barmode": "stack",
+        "height": 520,
+        "shape_count": 0
+      },
+      "menus": [
+        {
+          "label": "ALPHA",
+          "title_text": "<b>Team on ALPHA</b><br><span style=\"font-size:12px;color:#6A7683\">Budgeted hours per person per year · led by Ada Lovelace</span>",
+          "visible": [
+            true,
+            true,
+            false
+          ]
+        },
+        {
+          "label": "BETA",
+          "title_text": "<b>Team on BETA</b><br><span style=\"font-size:12px;color:#6A7683\">Budgeted hours per person per year · led by Grace Hopper</span>",
+          "visible": [
+            false,
+            false,
+            true
+          ]
+        }
+      ],
+      "traces": [
+        {
+          "marker": {
+            "color": "#1F5F6B"
+          },
+          "name": "Ada Lovelace",
+          "type": "bar",
+          "visible": true,
+          "x": [
+            "2026",
+            "2027",
+            "2028"
+          ],
+          "y": [
+            800.0,
+            400.0,
+            0.0
+          ]
+        },
+        {
+          "marker": {
+            "color": "#C98F2B",
+            "pattern_shape": "/"
+          },
+          "name": "Unallocated",
+          "type": "bar",
+          "visible": true,
+          "x": [
+            "2026",
+            "2027",
+            "2028"
+          ],
+          "y": [
+            0.0,
+            600.0,
+            0.0
+          ]
+        },
+        {
+          "marker": {
+            "color": "#6B4A72"
+          },
+          "name": "Grace Hopper",
+          "type": "bar",
+          "visible": false,
+          "x": [
+            "2026",
+            "2027",
+            "2028"
+          ],
+          "y": [
+            500.0,
+            0.0,
+            0.0
+          ]
+        }
+      ]
+    },
+    "fig_project_totals": {
+      "layout": {
+        "annotation_texts": [],
+        "barmode": "stack",
+        "height": 500,
+        "shape_count": 0
+      },
+      "menus": [],
+      "traces": [
+        {
+          "legendgroup": "2026",
+          "marker": {
+            "color": "#1F5F6B"
+          },
+          "name": "2026",
+          "orientation": "h",
+          "type": "bar",
+          "x": [
+            500,
+            800
+          ],
+          "y": [
+            "BETA",
+            "ALPHA"
+          ]
+        },
+        {
+          "legendgroup": "2026",
+          "marker": {
+            "color": "#1F5F6B",
+            "pattern_shape": "/"
+          },
+          "name": "2026 unallocated",
+          "orientation": "h",
+          "type": "bar",
+          "x": [
+            0.0,
+            0.0
+          ],
+          "y": [
+            "BETA",
+            "ALPHA"
+          ]
+        },
+        {
+          "legendgroup": "2027",
+          "marker": {
+            "color": "#6B4A72"
+          },
+          "name": "2027",
+          "orientation": "h",
+          "type": "bar",
+          "x": [
+            0.0,
+            400.0
+          ],
+          "y": [
+            "BETA",
+            "ALPHA"
+          ]
+        },
+        {
+          "legendgroup": "2027",
+          "marker": {
+            "color": "#6B4A72",
+            "pattern_shape": "/"
+          },
+          "name": "2027 unallocated",
+          "orientation": "h",
+          "type": "bar",
+          "x": [
+            0.0,
+            600.0
+          ],
+          "y": [
+            "BETA",
+            "ALPHA"
+          ]
+        },
+        {
+          "legendgroup": "2028",
+          "marker": {
+            "color": "#4C7A3F"
+          },
+          "name": "2028",
+          "orientation": "h",
+          "type": "bar",
+          "x": [
+            0.0,
+            0.0
+          ],
+          "y": [
+            "BETA",
+            "ALPHA"
+          ]
+        },
+        {
+          "legendgroup": "2028",
+          "marker": {
+            "color": "#4C7A3F",
+            "pattern_shape": "/"
+          },
+          "name": "2028 unallocated",
+          "orientation": "h",
+          "type": "bar",
+          "x": [
+            0.0,
+            0.0
+          ],
+          "y": [
+            "BETA",
+            "ALPHA"
+          ]
+        }
+      ]
     }
   },
   "group_tag": "Utslippsreduksjon / Climate Mitigation",

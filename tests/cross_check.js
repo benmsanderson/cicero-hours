@@ -114,6 +114,9 @@ function snapshotFigures(g, figures) {
     fig_person_forward: figureSnapshot(figures.figPersonForward(g)),
     fig_person_budget_stack: figureSnapshot(figures.figPersonBudgetStack(g, year)),
     fig_person_burn: figureSnapshot(figures.figPersonBurn(g, year)),
+    fig_project_totals: figureSnapshot(figures.figProjectTotals(g)),
+    fig_project_team: figureSnapshot(figures.figProjectTeam(g)),
+    fig_project_burn: figureSnapshot(figures.figProjectBurn(g, year)),
   };
 }
 

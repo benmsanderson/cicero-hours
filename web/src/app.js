@@ -16,6 +16,9 @@ import {
   figPersonBudgetStack,
   figPersonBurn,
   figPersonForward,
+  figProjectBurn,
+  figProjectTeam,
+  figProjectTotals,
   plot,
   resizeAll,
 } from './figures.js';
@@ -325,6 +328,10 @@ const FIGURES_FOR = {
   people: (g) => {
     const y = g.reporting_year;
     return [figPersonBudgetStack(g, y), figPersonBurn(g, y), figPersonForward(g)];
+  },
+  projects: (g) => {
+    const y = g.reporting_year;
+    return [figProjectTotals(g), figProjectTeam(g), figProjectBurn(g, y)];
   },
 };
 
