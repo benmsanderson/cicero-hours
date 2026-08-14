@@ -1,0 +1,1336 @@
+{
+  "as_of": "2026-07-02",
+  "billable_hours": 1250.0,
+  "board": {
+    "baseline": {
+      "Ada Lovelace": {
+        "2026": 800.0,
+        "2027": 400.0
+      },
+      "Grace Hopper": {
+        "2026": 500.0
+      }
+    },
+    "billable_hours": 1250.0,
+    "blocks": [
+      {
+        "hours": 800.0,
+        "id": "Ada Lovelace|ALPHA|2026",
+        "origin": "Ada Lovelace",
+        "owner": "Ada Lovelace",
+        "oyear": 2026,
+        "pm": "Ada Lovelace",
+        "project": "ALPHA",
+        "year": 2026
+      },
+      {
+        "hours": 400.0,
+        "id": "Ada Lovelace|ALPHA|2027",
+        "origin": "Ada Lovelace",
+        "owner": "Ada Lovelace",
+        "oyear": 2027,
+        "pm": "Ada Lovelace",
+        "project": "ALPHA",
+        "year": 2027
+      },
+      {
+        "hours": 600.0,
+        "id": "~pool|ALPHA|2027",
+        "origin": null,
+        "owner": null,
+        "oyear": 2027,
+        "pm": "Ada Lovelace",
+        "project": "ALPHA",
+        "year": 2027
+      },
+      {
+        "hours": 500.0,
+        "id": "Grace Hopper|BETA|2026",
+        "origin": "Grace Hopper",
+        "owner": "Grace Hopper",
+        "oyear": 2026,
+        "pm": "Grace Hopper",
+        "project": "BETA",
+        "year": 2026
+      }
+    ],
+    "default_year": 2027,
+    "fingerprint": "4 blocks / 2,300 h",
+    "people": [
+      "Ada Lovelace",
+      "Grace Hopper"
+    ],
+    "plan_file": "allocation_plan.txt",
+    "project_colour": {
+      "ALPHA": "#1F5F6B",
+      "BETA": "#C98F2B"
+    },
+    "project_years": {
+      "ALPHA": [
+        2026,
+        2027
+      ],
+      "BETA": [
+        2026
+      ]
+    },
+    "rate": {
+      "Ada Lovelace": 800.0,
+      "Grace Hopper": 400.0
+    },
+    "second_groups": {
+      "Grace Hopper": "Atmospheric Sciences"
+    },
+    "unallocated_person": "Forsker Climate Mitigation",
+    "years": [
+      2026,
+      2027,
+      2028
+    ]
+  },
+  "budget": [
+    {
+      "category": "Project",
+      "department": "RESEARCH 1",
+      "group_tag": "Utslippsreduksjon / Climate Mitigation",
+      "hours": 800,
+      "person": "Ada Lovelace",
+      "pm": "Ada Lovelace",
+      "project": "ALPHA",
+      "project_full": "31001 - ALPHA",
+      "project_no": 31001,
+      "second_group": null,
+      "task": "10 - Tid",
+      "unallocated": false,
+      "value": 1200000,
+      "year": 2026
+    },
+    {
+      "category": "Project",
+      "department": "RESEARCH 1",
+      "group_tag": "Utslippsreduksjon / Climate Mitigation",
+      "hours": 400,
+      "person": "Ada Lovelace",
+      "pm": "Ada Lovelace",
+      "project": "ALPHA",
+      "project_full": "31001 - ALPHA",
+      "project_no": 31001,
+      "second_group": null,
+      "task": "10 - Tid",
+      "unallocated": false,
+      "value": 620000,
+      "year": 2027
+    },
+    {
+      "category": "Project",
+      "department": "RESEARCH 1",
+      "group_tag": "Utslippsreduksjon / Climate Mitigation",
+      "hours": 500,
+      "person": "Grace Hopper",
+      "pm": "Grace Hopper",
+      "project": "BETA",
+      "project_full": "31002 - BETA",
+      "project_no": 31002,
+      "second_group": "Atmosfæreforskning / Atmospheric Sciences",
+      "task": "10 - Tid",
+      "unallocated": false,
+      "value": 750000,
+      "year": 2026
+    },
+    {
+      "category": "Project",
+      "department": "RESEARCH 1",
+      "group_tag": "Utslippsreduksjon / Climate Mitigation",
+      "hours": 600,
+      "person": "Forsker Climate Mitigation",
+      "pm": "Ada Lovelace",
+      "project": "ALPHA",
+      "project_full": "31001 - ALPHA",
+      "project_no": 31001,
+      "second_group": null,
+      "task": "10 - Tid",
+      "unallocated": true,
+      "value": 930000,
+      "year": 2027
+    },
+    {
+      "category": "Project",
+      "department": "RESEARCH 1",
+      "group_tag": "Utslippsreduksjon / Climate Mitigation",
+      "hours": 0,
+      "person": "Grace Hopper",
+      "pm": "Grace Hopper",
+      "project": "BETA",
+      "project_full": "31002 - BETA",
+      "project_no": 31002,
+      "second_group": null,
+      "task": "10 - Tid",
+      "unallocated": false,
+      "value": 0,
+      "year": 2028
+    }
+  ],
+  "excluded": [
+    "Alan Turing"
+  ],
+  "figures": {
+    "fig_group_capacity": {
+      "layout": {
+        "annotation_texts": [
+          "2,500 h billable"
+        ],
+        "barmode": "stack",
+        "height": 420,
+        "shape_count": 2
+      },
+      "menus": [],
+      "traces": [
+        {
+          "marker": {
+            "color": "#1F5F6B"
+          },
+          "name": "Assigned to a person",
+          "type": "bar",
+          "x": [
+            "2026",
+            "2027",
+            "2028"
+          ],
+          "y": [
+            1300,
+            400,
+            0
+          ]
+        },
+        {
+          "marker": {
+            "color": "#C98F2B",
+            "pattern_shape": "/"
+          },
+          "name": "Unallocated",
+          "type": "bar",
+          "x": [
+            "2026",
+            "2027",
+            "2028"
+          ],
+          "y": [
+            0.0,
+            600.0,
+            0.0
+          ]
+        }
+      ]
+    },
+    "fig_matrix": {
+      "layout": {
+        "annotation_texts": [],
+        "barmode": null,
+        "height": 560,
+        "shape_count": 0
+      },
+      "menus": [],
+      "traces": [
+        {
+          "name": null,
+          "type": "heatmap",
+          "x": [
+            "Ada Lovelace",
+            "Grace Hopper"
+          ],
+          "y": [
+            "BETA",
+            "ALPHA"
+          ],
+          "z": [
+            [
+              null,
+              500.0
+            ],
+            [
+              800.0,
+              null
+            ]
+          ]
+        }
+      ]
+    },
+    "fig_person_budget_stack": {
+      "layout": {
+        "annotation_texts": [
+          "1,250 h billing standard"
+        ],
+        "barmode": "stack",
+        "height": 280,
+        "shape_count": 2,
+        "yaxis_categoryarray": [
+          "Grace Hopper",
+          "Ada Lovelace"
+        ],
+        "yaxis_categoryorder": "array"
+      },
+      "menus": [
+        {
+          "height": 280,
+          "label": "2026",
+          "title_text": "<b>Hours budgeted per person, 2026</b><br><span style=\"font-size:12px;color:#6A7683\">Largest 6 projects each, labelled where they fit; the rest pooled in grey. 'Forsker Climate Mitigation' is unassigned group time.</span>",
+          "visible": [
+            true,
+            true,
+            false
+          ],
+          "yaxis_categoryarray": [
+            "Grace Hopper",
+            "Ada Lovelace"
+          ]
+        },
+        {
+          "height": 280,
+          "label": "2027",
+          "title_text": "<b>Hours budgeted per person, 2027</b><br><span style=\"font-size:12px;color:#6A7683\">Largest 6 projects each, labelled where they fit; the rest pooled in grey. 'Forsker Climate Mitigation' is unassigned group time.</span>",
+          "visible": [
+            false,
+            false,
+            true
+          ],
+          "yaxis_categoryarray": [
+            "Ada Lovelace",
+            "Forsker Climate Mitigation"
+          ]
+        }
+      ],
+      "traces": [
+        {
+          "marker": {
+            "color": "#1F5F6B"
+          },
+          "name": "ALPHA",
+          "orientation": "h",
+          "type": "bar",
+          "visible": true,
+          "x": [
+            800
+          ],
+          "y": [
+            "Ada Lovelace"
+          ]
+        },
+        {
+          "marker": {
+            "color": "#C98F2B"
+          },
+          "name": "BETA",
+          "orientation": "h",
+          "type": "bar",
+          "visible": true,
+          "x": [
+            500
+          ],
+          "y": [
+            "Grace Hopper"
+          ]
+        },
+        {
+          "marker": {
+            "color": "#1F5F6B"
+          },
+          "name": "ALPHA",
+          "orientation": "h",
+          "type": "bar",
+          "visible": false,
+          "x": [
+            400,
+            600
+          ],
+          "y": [
+            "Ada Lovelace",
+            "Forsker Climate Mitigation"
+          ]
+        }
+      ]
+    },
+    "fig_person_burn": {
+      "layout": {
+        "annotation_texts": [],
+        "barmode": "overlay",
+        "height": 280,
+        "shape_count": 0,
+        "yaxis_categoryarray": [
+          "Grace Hopper",
+          "Ada Lovelace"
+        ],
+        "yaxis_categoryorder": "array"
+      },
+      "menus": [
+        {
+          "height": 280,
+          "label": "2026",
+          "title_text": "<b>Project time against plan, 2026</b><br><span style=\"font-size:12px;color:#6A7683\">Absence and internal time excluded. Tick marks the straight-line expectation at 50% of 2026's working year.</span>",
+          "visible": [
+            true,
+            true,
+            true,
+            false,
+            false,
+            false
+          ],
+          "yaxis_categoryarray": [
+            "Grace Hopper",
+            "Ada Lovelace"
+          ]
+        },
+        {
+          "height": 280,
+          "label": "2027",
+          "title_text": "<b>Project time against plan, 2027</b><br><span style=\"font-size:12px;color:#6A7683\">Absence and internal time excluded. Nothing is booked to 2027 yet, so the bars are the budget as it stands.</span>",
+          "visible": [
+            false,
+            false,
+            false,
+            true,
+            true,
+            true
+          ],
+          "yaxis_categoryarray": [
+            "Ada Lovelace"
+          ]
+        }
+      ],
+      "traces": [
+        {
+          "legendgroup": "budget",
+          "marker": {
+            "color": "#A9B7C2"
+          },
+          "name": "Budgeted for 2026",
+          "orientation": "h",
+          "type": "bar",
+          "visible": true,
+          "x": [
+            500,
+            800
+          ],
+          "y": [
+            "Grace Hopper",
+            "Ada Lovelace"
+          ]
+        },
+        {
+          "legendgroup": "registered",
+          "marker": {
+            "color": "#1F5F6B"
+          },
+          "name": "Registered so far",
+          "orientation": "h",
+          "type": "bar",
+          "visible": true,
+          "x": [
+            200.0,
+            400.0
+          ],
+          "y": [
+            "Grace Hopper",
+            "Ada Lovelace"
+          ]
+        },
+        {
+          "legendgroup": "onplan",
+          "mode": "markers",
+          "name": "On plan at this date",
+          "type": "scatter",
+          "visible": true,
+          "x": [
+            249.042146,
+            398.467433
+          ],
+          "y": [
+            "Grace Hopper",
+            "Ada Lovelace"
+          ]
+        },
+        {
+          "legendgroup": "budget",
+          "marker": {
+            "color": "#A9B7C2"
+          },
+          "name": "Budgeted for 2027",
+          "orientation": "h",
+          "type": "bar",
+          "visible": false,
+          "x": [
+            400
+          ],
+          "y": [
+            "Ada Lovelace"
+          ]
+        },
+        {
+          "legendgroup": "registered",
+          "marker": {
+            "color": "#1F5F6B"
+          },
+          "name": "Registered so far",
+          "orientation": "h",
+          "type": "bar",
+          "visible": false,
+          "x": [
+            0.0
+          ],
+          "y": [
+            "Ada Lovelace"
+          ]
+        },
+        {
+          "legendgroup": "onplan",
+          "mode": "markers",
+          "name": "On plan at this date",
+          "type": "scatter",
+          "visible": false,
+          "x": [
+            0.0
+          ],
+          "y": [
+            "Ada Lovelace"
+          ]
+        }
+      ]
+    },
+    "fig_person_deep_dive": {
+      "layout": {
+        "annotation_texts": [
+          "2026: budget against hours booked",
+          "Commitments by year",
+          "The rest of 2026: nothing booked outside projects",
+          "1,250 h"
+        ],
+        "barmode": "stack",
+        "height": 822,
+        "shape_count": 1
+      },
+      "menus": [
+        {
+          "label": "Ada Lovelace",
+          "title_text": "<b>Ada Lovelace</b><br><span style=\"font-size:12px;color:#6A7683\">800 h budgeted across 1 project in 2026 · 400 h booked · 0 h absence · 0 h internal</span>",
+          "visible": [
+            true,
+            true,
+            true,
+            true,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "label": "Grace Hopper",
+          "title_text": "<b>Grace Hopper</b><br><span style=\"font-size:12px;color:#6A7683\">500 h budgeted across 1 project in 2026 · 200 h booked · 210 h absence · 210 h internal · part-time in Atmospheric Sciences</span>",
+          "visible": [
+            false,
+            false,
+            false,
+            false,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true
+          ]
+        }
+      ],
+      "traces": [
+        {
+          "legendgroup": "budget",
+          "marker": {
+            "color": "#A9B7C2"
+          },
+          "name": "Budgeted",
+          "offsetgroup": "budget",
+          "orientation": "h",
+          "type": "bar",
+          "visible": true,
+          "x": [
+            800
+          ],
+          "xaxis": "x",
+          "y": [
+            "ALPHA"
+          ],
+          "yaxis": "y"
+        },
+        {
+          "legendgroup": "booked",
+          "marker": {
+            "color": "#1F5F6B"
+          },
+          "name": "Booked",
+          "offsetgroup": "booked",
+          "orientation": "h",
+          "type": "bar",
+          "visible": true,
+          "x": [
+            400.0
+          ],
+          "xaxis": "x",
+          "y": [
+            "ALPHA"
+          ],
+          "yaxis": "y"
+        },
+        {
+          "legendgroup": "onplan",
+          "mode": "markers",
+          "name": "On plan",
+          "type": "scatter",
+          "visible": true,
+          "x": [
+            398.467433
+          ],
+          "xaxis": "x",
+          "y": [
+            "ALPHA"
+          ],
+          "yaxis": "y"
+        },
+        {
+          "marker": {
+            "color": "#1F5F6B"
+          },
+          "name": "ALPHA",
+          "offsetgroup": "forward",
+          "type": "bar",
+          "visible": true,
+          "x": [
+            "2026",
+            "2027",
+            "2028"
+          ],
+          "xaxis": "x2",
+          "y": [
+            800.0,
+            400.0,
+            0.0
+          ],
+          "yaxis": "y2"
+        },
+        {
+          "legendgroup": "budget",
+          "marker": {
+            "color": "#A9B7C2"
+          },
+          "name": "Budgeted",
+          "offsetgroup": "budget",
+          "orientation": "h",
+          "type": "bar",
+          "visible": false,
+          "x": [
+            500
+          ],
+          "xaxis": "x",
+          "y": [
+            "BETA"
+          ],
+          "yaxis": "y"
+        },
+        {
+          "legendgroup": "booked",
+          "marker": {
+            "color": "#1F5F6B"
+          },
+          "name": "Booked",
+          "offsetgroup": "booked",
+          "orientation": "h",
+          "type": "bar",
+          "visible": false,
+          "x": [
+            200.0
+          ],
+          "xaxis": "x",
+          "y": [
+            "BETA"
+          ],
+          "yaxis": "y"
+        },
+        {
+          "legendgroup": "onplan",
+          "mode": "markers",
+          "name": "On plan",
+          "type": "scatter",
+          "visible": false,
+          "x": [
+            249.042146
+          ],
+          "xaxis": "x",
+          "y": [
+            "BETA"
+          ],
+          "yaxis": "y"
+        },
+        {
+          "marker": {
+            "color": "#C98F2B"
+          },
+          "name": "BETA",
+          "offsetgroup": "forward",
+          "type": "bar",
+          "visible": false,
+          "x": [
+            "2026",
+            "2027",
+            "2028"
+          ],
+          "xaxis": "x2",
+          "y": [
+            500.0,
+            0.0,
+            0.0
+          ],
+          "yaxis": "y2"
+        },
+        {
+          "legendgroup": "Internal",
+          "marker": {
+            "color": "#7E8FA0"
+          },
+          "name": "Internal",
+          "orientation": "h",
+          "type": "bar",
+          "visible": false,
+          "x": [
+            60.0,
+            150.0
+          ],
+          "xaxis": "x3",
+          "y": [
+            "Project Development and Acquisition - Research funding",
+            "Operations"
+          ],
+          "yaxis": "y3"
+        },
+        {
+          "legendgroup": "Absence",
+          "marker": {
+            "color": "#C6CED6"
+          },
+          "name": "Absence",
+          "orientation": "h",
+          "type": "bar",
+          "visible": false,
+          "x": [
+            22.5,
+            187.5
+          ],
+          "xaxis": "x3",
+          "y": [
+            "Sick Leave (Self-Certified)",
+            "Ferie"
+          ],
+          "yaxis": "y3"
+        }
+      ]
+    },
+    "fig_person_forward": {
+      "layout": {
+        "annotation_texts": [
+          "1,250 h billing standard"
+        ],
+        "barmode": "group",
+        "height": 420,
+        "shape_count": 2
+      },
+      "menus": [],
+      "traces": [
+        {
+          "marker": {
+            "color": "#1F5F6B"
+          },
+          "name": "2026",
+          "orientation": "h",
+          "type": "bar",
+          "x": [
+            500.0,
+            800.0
+          ],
+          "y": [
+            "Grace Hopper",
+            "Ada Lovelace"
+          ]
+        },
+        {
+          "marker": {
+            "color": "#6B4A72"
+          },
+          "name": "2027",
+          "orientation": "h",
+          "type": "bar",
+          "x": [
+            0.0,
+            400.0
+          ],
+          "y": [
+            "Grace Hopper",
+            "Ada Lovelace"
+          ]
+        },
+        {
+          "marker": {
+            "color": "#4C7A3F"
+          },
+          "name": "2028",
+          "orientation": "h",
+          "type": "bar",
+          "x": [
+            0.0,
+            0.0
+          ],
+          "y": [
+            "Grace Hopper",
+            "Ada Lovelace"
+          ]
+        }
+      ]
+    },
+    "fig_project_burn": {
+      "layout": {
+        "annotation_texts": [],
+        "barmode": "overlay",
+        "height": 520,
+        "shape_count": 0
+      },
+      "menus": [],
+      "traces": [
+        {
+          "marker": {
+            "color": "#A9B7C2"
+          },
+          "name": "Budgeted",
+          "orientation": "h",
+          "type": "bar",
+          "x": [
+            500.0,
+            800.0
+          ],
+          "y": [
+            "BETA",
+            "ALPHA"
+          ]
+        },
+        {
+          "marker": {
+            "color": "#1F5F6B"
+          },
+          "name": "Registered",
+          "orientation": "h",
+          "type": "bar",
+          "x": [
+            200.0,
+            400.0
+          ],
+          "y": [
+            "BETA",
+            "ALPHA"
+          ]
+        },
+        {
+          "mode": "markers",
+          "name": "On plan at this date",
+          "type": "scatter",
+          "x": [
+            249.042146,
+            398.467433
+          ],
+          "y": [
+            "BETA",
+            "ALPHA"
+          ]
+        }
+      ]
+    },
+    "fig_project_team": {
+      "layout": {
+        "annotation_texts": [],
+        "barmode": "stack",
+        "height": 520,
+        "shape_count": 0
+      },
+      "menus": [
+        {
+          "label": "ALPHA",
+          "title_text": "<b>Team on ALPHA</b><br><span style=\"font-size:12px;color:#6A7683\">Budgeted hours per person per year · led by Ada Lovelace</span>",
+          "visible": [
+            true,
+            true,
+            false
+          ]
+        },
+        {
+          "label": "BETA",
+          "title_text": "<b>Team on BETA</b><br><span style=\"font-size:12px;color:#6A7683\">Budgeted hours per person per year · led by Grace Hopper</span>",
+          "visible": [
+            false,
+            false,
+            true
+          ]
+        }
+      ],
+      "traces": [
+        {
+          "marker": {
+            "color": "#1F5F6B"
+          },
+          "name": "Ada Lovelace",
+          "type": "bar",
+          "visible": true,
+          "x": [
+            "2026",
+            "2027",
+            "2028"
+          ],
+          "y": [
+            800.0,
+            400.0,
+            0.0
+          ]
+        },
+        {
+          "marker": {
+            "color": "#C98F2B",
+            "pattern_shape": "/"
+          },
+          "name": "Unallocated",
+          "type": "bar",
+          "visible": true,
+          "x": [
+            "2026",
+            "2027",
+            "2028"
+          ],
+          "y": [
+            0.0,
+            600.0,
+            0.0
+          ]
+        },
+        {
+          "marker": {
+            "color": "#6B4A72"
+          },
+          "name": "Grace Hopper",
+          "type": "bar",
+          "visible": false,
+          "x": [
+            "2026",
+            "2027",
+            "2028"
+          ],
+          "y": [
+            500.0,
+            0.0,
+            0.0
+          ]
+        }
+      ]
+    },
+    "fig_project_totals": {
+      "layout": {
+        "annotation_texts": [],
+        "barmode": "stack",
+        "height": 500,
+        "shape_count": 0
+      },
+      "menus": [],
+      "traces": [
+        {
+          "legendgroup": "2026",
+          "marker": {
+            "color": "#1F5F6B"
+          },
+          "name": "2026",
+          "orientation": "h",
+          "type": "bar",
+          "x": [
+            500,
+            800
+          ],
+          "y": [
+            "BETA",
+            "ALPHA"
+          ]
+        },
+        {
+          "legendgroup": "2026",
+          "marker": {
+            "color": "#1F5F6B",
+            "pattern_shape": "/"
+          },
+          "name": "2026 unallocated",
+          "orientation": "h",
+          "type": "bar",
+          "x": [
+            0.0,
+            0.0
+          ],
+          "y": [
+            "BETA",
+            "ALPHA"
+          ]
+        },
+        {
+          "legendgroup": "2027",
+          "marker": {
+            "color": "#6B4A72"
+          },
+          "name": "2027",
+          "orientation": "h",
+          "type": "bar",
+          "x": [
+            0.0,
+            400.0
+          ],
+          "y": [
+            "BETA",
+            "ALPHA"
+          ]
+        },
+        {
+          "legendgroup": "2027",
+          "marker": {
+            "color": "#6B4A72",
+            "pattern_shape": "/"
+          },
+          "name": "2027 unallocated",
+          "orientation": "h",
+          "type": "bar",
+          "x": [
+            0.0,
+            600.0
+          ],
+          "y": [
+            "BETA",
+            "ALPHA"
+          ]
+        },
+        {
+          "legendgroup": "2028",
+          "marker": {
+            "color": "#4C7A3F"
+          },
+          "name": "2028",
+          "orientation": "h",
+          "type": "bar",
+          "x": [
+            0.0,
+            0.0
+          ],
+          "y": [
+            "BETA",
+            "ALPHA"
+          ]
+        },
+        {
+          "legendgroup": "2028",
+          "marker": {
+            "color": "#4C7A3F",
+            "pattern_shape": "/"
+          },
+          "name": "2028 unallocated",
+          "orientation": "h",
+          "type": "bar",
+          "x": [
+            0.0,
+            0.0
+          ],
+          "y": [
+            "BETA",
+            "ALPHA"
+          ]
+        }
+      ]
+    },
+    "fig_registered_composition": {
+      "layout": {
+        "annotation_texts": [
+          "623 h billable to date"
+        ],
+        "barmode": "stack",
+        "height": 380,
+        "shape_count": 2
+      },
+      "menus": [],
+      "traces": [
+        {
+          "marker": {
+            "color": "#1F5F6B"
+          },
+          "name": "Project",
+          "orientation": "h",
+          "type": "bar",
+          "x": [
+            400.0,
+            200.0
+          ],
+          "y": [
+            "Ada Lovelace",
+            "Grace Hopper"
+          ]
+        },
+        {
+          "marker": {
+            "color": "#7E8FA0"
+          },
+          "name": "Internal",
+          "orientation": "h",
+          "type": "bar",
+          "x": [
+            0.0,
+            210.0
+          ],
+          "y": [
+            "Ada Lovelace",
+            "Grace Hopper"
+          ]
+        },
+        {
+          "marker": {
+            "color": "#C6CED6"
+          },
+          "name": "Absence",
+          "orientation": "h",
+          "type": "bar",
+          "x": [
+            0.0,
+            210.0
+          ],
+          "y": [
+            "Ada Lovelace",
+            "Grace Hopper"
+          ]
+        }
+      ]
+    }
+  },
+  "group_tag": "Utslippsreduksjon / Climate Mitigation",
+  "nonproject_by_person_task": {
+    "2026": [
+      {
+        "category": "Absence",
+        "hours": 187.5,
+        "person": "Grace Hopper",
+        "task": "92 - Ferie"
+      },
+      {
+        "category": "Internal",
+        "hours": 150.0,
+        "person": "Grace Hopper",
+        "task": "11 - Drift/Operations"
+      },
+      {
+        "category": "Internal",
+        "hours": 60.0,
+        "person": "Grace Hopper",
+        "task": "11-2 - Prosjektutv. & akkv. Bidragsforskning/Project Development and Acquisition - Research funding"
+      },
+      {
+        "category": "Absence",
+        "hours": 22.5,
+        "person": "Grace Hopper",
+        "task": "90 - Syk, Egenmelding/Sick Leave (Self-Certified)"
+      }
+    ],
+    "2027": [],
+    "2028": []
+  },
+  "people": [
+    "Ada Lovelace",
+    "Grace Hopper"
+  ],
+  "person_summary": {
+    "2026": [
+      {
+        "Absence": 0.0,
+        "Internal": 0.0,
+        "Other": 0.0,
+        "Project": 400.0,
+        "billable_target": 1250.0,
+        "expected_to_date": 398.467433,
+        "n_projects": 1,
+        "person": "Ada Lovelace",
+        "project_budget": 800,
+        "registered_total": 400.0,
+        "variance": 1.532567
+      },
+      {
+        "Absence": 210.0,
+        "Internal": 210.0,
+        "Other": 0.0,
+        "Project": 200.0,
+        "billable_target": 1250.0,
+        "expected_to_date": 249.042146,
+        "n_projects": 1,
+        "person": "Grace Hopper",
+        "project_budget": 500,
+        "registered_total": 620.0,
+        "variance": -49.042146
+      }
+    ],
+    "2027": [
+      {
+        "Absence": 0.0,
+        "Internal": 0.0,
+        "Other": 0.0,
+        "Project": 0.0,
+        "billable_target": 1250.0,
+        "expected_to_date": 0.0,
+        "n_projects": 1,
+        "person": "Ada Lovelace",
+        "project_budget": 400,
+        "registered_total": 0.0,
+        "variance": 0.0
+      }
+    ],
+    "2028": [
+      {
+        "Absence": 0.0,
+        "Internal": 0.0,
+        "Other": 0.0,
+        "Project": 0.0,
+        "billable_target": 1250.0,
+        "expected_to_date": 0.0,
+        "n_projects": 0,
+        "person": "Grace Hopper",
+        "project_budget": 0,
+        "registered_total": 0.0,
+        "variance": 0.0
+      }
+    ]
+  },
+  "project_summary": [
+    {
+      "budget_named": 800,
+      "budget_total": 800.0,
+      "budget_unallocated": 0.0,
+      "pm": "Ada Lovelace",
+      "project": "ALPHA",
+      "registered": 400.0,
+      "year": 2026
+    },
+    {
+      "budget_named": 400,
+      "budget_total": 1000.0,
+      "budget_unallocated": 600.0,
+      "pm": "Ada Lovelace",
+      "project": "ALPHA",
+      "registered": 0.0,
+      "year": 2027
+    },
+    {
+      "budget_named": 500,
+      "budget_total": 500.0,
+      "budget_unallocated": 0.0,
+      "pm": "Grace Hopper",
+      "project": "BETA",
+      "registered": 200.0,
+      "year": 2026
+    },
+    {
+      "budget_named": 0,
+      "budget_total": 0.0,
+      "budget_unallocated": 0.0,
+      "pm": "Grace Hopper",
+      "project": "BETA",
+      "registered": 0.0,
+      "year": 2028
+    }
+  ],
+  "registered": [
+    {
+      "category": "Project",
+      "group_tag": "Utslippsreduksjon / Climate Mitigation",
+      "hours": 400.0,
+      "person": "Ada Lovelace",
+      "project": "ALPHA",
+      "project_full": "31001 - ALPHA",
+      "project_no": 31001,
+      "task": "10 - Tid",
+      "value": 600000,
+      "year": 2026
+    },
+    {
+      "category": "Absence",
+      "group_tag": "Utslippsreduksjon / Climate Mitigation",
+      "hours": 22.5,
+      "person": "Grace Hopper",
+      "project": "Fravær",
+      "project_full": "10503 - Fravær",
+      "project_no": 10503,
+      "task": "90 - Syk, Egenmelding/Sick Leave (Self-Certified)",
+      "value": 0,
+      "year": 2026
+    },
+    {
+      "category": "Absence",
+      "group_tag": "Utslippsreduksjon / Climate Mitigation",
+      "hours": 187.5,
+      "person": "Grace Hopper",
+      "project": "Fravær",
+      "project_full": "10503 - Fravær",
+      "project_no": 10503,
+      "task": "92 - Ferie",
+      "value": 0,
+      "year": 2026
+    },
+    {
+      "category": "Internal",
+      "group_tag": "Utslippsreduksjon / Climate Mitigation",
+      "hours": 150.0,
+      "person": "Grace Hopper",
+      "project": "CICERO-tid Research 1",
+      "project_full": "10506 - CICERO-tid Research 1",
+      "project_no": 10506,
+      "task": "11 - Drift/Operations",
+      "value": 0,
+      "year": 2026
+    },
+    {
+      "category": "Internal",
+      "group_tag": "Utslippsreduksjon / Climate Mitigation",
+      "hours": 60.0,
+      "person": "Grace Hopper",
+      "project": "CICERO-tid Research 1",
+      "project_full": "10506 - CICERO-tid Research 1",
+      "project_no": 10506,
+      "task": "11-2 - Prosjektutv. & akkv. Bidragsforskning/Project Development and Acquisition - Research funding",
+      "value": 0,
+      "year": 2026
+    },
+    {
+      "category": "Project",
+      "group_tag": "Utslippsreduksjon / Climate Mitigation",
+      "hours": 200.0,
+      "person": "Grace Hopper",
+      "project": "BETA",
+      "project_full": "31002 - BETA",
+      "project_no": 31002,
+      "task": "10 - Tid",
+      "value": 300000,
+      "year": 2026
+    }
+  ],
+  "reporting_year": 2026,
+  "second_groups": {
+    "Grace Hopper": "Atmosfæreforskning / Atmospheric Sciences"
+  },
+  "year_fractions": {
+    "2026": 0.498084,
+    "2027": 0.0,
+    "2028": 0.0
+  },
+  "years": [
+    2026,
+    2027,
+    2028
+  ]
+}

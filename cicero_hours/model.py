@@ -8,19 +8,30 @@ from dataclasses import dataclass, field
 import numpy as np
 import pandas as pd
 
+from ._rules import (
+    ABSENCE_JOBS,
+    BILLABLE_HOURS_DEFAULT,
+    CATEGORY_ORDER,
+    INTERNAL_JOBS,
+    PROJECT_JOB_FLOOR,
+    UNALLOCATED_PERSON,
+)
 from .loader import RawExport
 
-# Job numbers below this are internal CICERO accounts rather than projects.
-PROJECT_JOB_FLOOR = 31000
-
-# Internal accounts, grouped into the categories we report.
-ABSENCE_JOBS = {10503}
-INTERNAL_JOBS = {10501, 10506}
-
-# The pseudo-employee the export uses for budgeted but unassigned hours.
-UNALLOCATED_PERSON = "Forsker Climate Mitigation"
-
-CATEGORY_ORDER = ["Project", "Internal", "Absence", "Other"]
+# Re-exported so `from cicero_hours.model import UNALLOCATED_PERSON` still works;
+# the values themselves live in spec/rules.json.
+__all__ = [
+    "ABSENCE_JOBS",
+    "Assumptions",
+    "CATEGORY_ORDER",
+    "Group",
+    "INTERNAL_JOBS",
+    "PROJECT_JOB_FLOOR",
+    "UNALLOCATED_PERSON",
+    "build_group",
+    "tidy_budget",
+    "tidy_registered",
+]
 
 
 @dataclass
@@ -31,7 +42,7 @@ class Assumptions:
     # Billable project hours expected from a researcher on a 100% position in one
     # year. This is the institute's billing standard, not contracted hours: the
     # gap between the two is internal time, absence and everything non-billable.
-    billable_hours: float = 1250.0
+    billable_hours: float = BILLABLE_HOURS_DEFAULT
     # Public holidays falling on weekdays, used to pro-rate the year.
     holidays: tuple[str, ...] = ()
 

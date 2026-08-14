@@ -1,0 +1,24 @@
+{
+  "_readme": "Shared domain constants for the Python build and, later, the browser build. Keep this the single source of truth; the two implementations cannot disagree about whether account 10506 is internal time if the number lives in one place.",
+
+  "project_job_floor": 31000,
+  "absence_jobs": [10503],
+  "internal_jobs": [10501, 10506],
+
+  "unallocated_person": "Forsker Climate Mitigation",
+
+  "category_order": ["Project", "Internal", "Absence", "Other"],
+
+  "billable_hours_default": 1250.0,
+
+  "table_signatures": [
+    {
+      "name": "registered",
+      "columns": ["Medarbeider", "Prosjekt", "Hours - Reg.", "Year str"]
+    },
+    {
+      "name": "budget",
+      "columns": ["Medarbeider", "Prosjekt", "Quantity - Hours", "Budget Type"]
+    }
+  ]
+}

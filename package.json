@@ -3,9 +3,16 @@
   "private": true,
   "description": "Dev-only: jsdom harness for the allocation board's browser code.",
   "scripts": {
-    "test:board": "python3 tests/build_fixture_dashboard.py /tmp/fixture.html && node tests/board_check.js /tmp/fixture.html"
+    "build": "node web/build.js",
+    "test:board": "python3 tests/build_fixture_dashboard.py /tmp/fixture.html && node tests/board_check.js /tmp/fixture.html",
+    "test:board:web": "node web/build.js --out=/tmp/cicero_shell.html && python3 -c \"from tests.synthetic import write_export; from pathlib import Path; write_export(Path('/tmp/cicero_synth.csv'))\" && node tests/board_check.js /tmp/cicero_shell.html /tmp/cicero_synth.csv",
+    "test:cross": "python3 -c \"from tests.synthetic import write_export; from pathlib import Path; write_export(Path('/tmp/cicero_synth.csv'))\" && node tests/cross_check.js /tmp/cicero_synth.csv",
+    "test:shell": "node web/build.js --out=/tmp/cicero_shell.html && python3 -c \"from tests.synthetic import write_export; from pathlib import Path; write_export(Path('/tmp/cicero_synth.csv'))\" && node tests/shell_check.js /tmp/cicero_shell.html /tmp/cicero_synth.csv",
+    "test:size": "node web/build.js --out=/tmp/cicero_shell.html && node tests/size_check.js /tmp/cicero_shell.html"
   },
   "devDependencies": {
-    "jsdom": "^26.1.0"
+    "esbuild": "^0.28.2",
+    "jsdom": "^26.1.0",
+    "plotly.js-cartesian-dist-min": "^3.7.0"
   }
 }

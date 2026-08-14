@@ -14,12 +14,9 @@ from pathlib import Path
 
 import pandas as pd
 
-# A table is recognised by columns it must contain. First match wins, so put
-# the more specific signatures first.
-TABLE_SIGNATURES: list[tuple[str, set[str]]] = [
-    ("registered", {"Medarbeider", "Prosjekt", "Hours - Reg.", "Year str"}),
-    ("budget", {"Medarbeider", "Prosjekt", "Quantity - Hours", "Budget Type"}),
-]
+# The signatures live in spec/rules.json so the browser build can read the same
+# list; the "first match wins, most specific first" contract still stands.
+from ._rules import TABLE_SIGNATURES
 
 
 @dataclass

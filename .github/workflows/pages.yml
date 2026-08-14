@@ -1,0 +1,53 @@
+name: pages
+
+# Build the browser dashboard and publish it to GitHub Pages on every push
+# to main. Colleagues can then open https://<owner>.github.io/<repo>/ and
+# drop their export straight onto the page; the CSV is still read locally
+# by FileReader and never leaves the machine.
+
+on:
+  push:
+    branches: [main]
+  # Also allow a manual rebuild from the Actions tab, so a Pages redeploy
+  # does not need a code change to fire.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time. cancel-in-progress stays false so a run that has
+# built its artifact still gets to publish, even if a newer push has landed.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: actions/configure-pages@v5
+      # package-lock.json is gitignored (it names transitive deps that a
+      # colleague building locally may not want pinned), so npm install rather
+      # than npm ci.
+      - run: npm install
+      # GitHub Pages serves index.html at the root; build there.
+      - run: node web/build.js --out=dist/index.html
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -24,7 +24,9 @@ jobs:
 
   board:
     # The allocation board is browser code, so it is exercised in a DOM rather
-    # than by pytest: build a dashboard from the synthetic export and drive it.
+    # than by pytest. Same harness drives both the Python dashboard and the
+    # browser build; the runtime is one file (spec/board.js) and the same
+    # assertions cover both.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -38,3 +40,44 @@ jobs:
       - run: pip install -e "."
       - run: npm install
       - run: npm run test:board
+      - run: npm run test:board:web
+
+  cross:
+    # The browser build's loader and model run against the synthetic export
+    # and are asserted key by key against spec/expected.json, so a Python
+    # change that moves a number and a JS change that fails to follow both
+    # break this step. It is the single thing standing between two colleagues
+    # opening the two builds and bringing contradictory numbers to a meeting.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: pip install -e "."
+      - run: npm install
+      - run: npm run test:cross
+
+  shell:
+    # Builds the browser bundle and drives it in jsdom: drops the synthetic
+    # export into the page and checks the KPIs and tab machinery. Also enforces
+    # the size budget on the built file, so the browser build cannot silently
+    # grow past what email attachments accept.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: pip install -e "."
+      - run: npm install
+      - run: npm run test:shell
+      - run: npm run test:size

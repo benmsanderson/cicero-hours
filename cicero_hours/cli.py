@@ -14,6 +14,7 @@ import datetime as dt
 import sys
 from pathlib import Path
 
+from ._rules import BILLABLE_HOURS_DEFAULT
 from .dashboard import build_dashboard
 from .loader import load_export
 from .model import Assumptions, build_group
@@ -28,7 +29,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("-o", "--output", type=Path, default=Path("hours_dashboard.html"))
     p.add_argument("--as-of", type=dt.date.fromisoformat, default=dt.date.today(),
                    help="Date the registered hours run to (YYYY-MM-DD). Default: today.")
-    p.add_argument("--billable-hours", type=float, default=1250.0,
+    p.add_argument("--billable-hours", type=float, default=BILLABLE_HOURS_DEFAULT,
                    help="Billable project hours expected from a full-time researcher "
                         "in one year. Default: 1250, the CICERO billing standard.")
     p.add_argument("--holidays", nargs="*", default=[],
