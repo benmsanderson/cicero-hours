@@ -24,26 +24,56 @@ year is re-sorted and re-scaled on its own terms, and a year still to come says
 that nothing is booked to it yet rather than drawing an empty comparison. Years
 the export budgets nothing to are not offered.
 
+There are two builds and they show the same six views from the same numbers. The
+**browser build** is a page you drop the export onto. The **Python build**
+renders a page from the command line. Start with the browser one; reach for the
+command line when you need the flags it does not expose.
+
 ## Open it in a browser
 
 The browser build is published to GitHub Pages on every push to `main`:
 **https://benmsanderson.github.io/cicero-hours/**. Drop your *Timer budsjettert
-og registrert pr. medarbeider* CSV onto the page and it renders.
+og registrert pr. medarbeider* CSV onto the page and it renders. That is the
+whole procedure — no Python, no environment, no arguments.
 
-The data-protection story does not change. The page itself is fetched from
-GitHub, but the CSV is read in your browser by `FileReader` and never touches
-the network; the built HTML makes no outbound requests at runtime. What GitHub
-sees is the page load itself (IP, user agent, referrer), not the file you
-open with it. If that matters, download the file from Actions and email it
-instead.
+**The export never leaves the page.** The CSV is read from your disk by
+`FileReader`, parsed in the browser and drawn there. The built page makes no
+outbound request at runtime: no `fetch`, no analytics, no service worker, and
+plotly.js is inlined rather than pulled from a CDN. That is the point rather
+than a detail, because the export is personal data about named staff.
 
-## Install
-
-With [uv](https://docs.astral.sh/uv/), into a project virtualenv:
+What GitHub sees is the page load itself — IP, user agent, referrer — and not
+the file you open with it. If even that is too much, build the page yourself and
+open it from your own disk:
 
 ```bash
 git clone git@github.com:<you>/cicero-hours.git
 cd cicero-hours
+npm install          # esbuild and plotly, dev only
+npm run build        # writes dist/hours_dashboard.html, about 1.4 MB
+```
+
+That file is the same dashboard with nothing hosted about it. It carries no data
+of its own, so it is also the thing to pass around: mail it to a colleague and
+they open their own export in it, offline, by double-click, with nothing to
+install.
+
+The reporting date is a date picker in the header rather than a flag, so a
+meeting can move it and watch the "on plan" marks follow. Everything else the
+page infers from the export: the group tag is read off the rows, and the billing
+standard is the 1250 h default.
+
+What the browser cannot do is everything the command line passes as an argument:
+overriding the detected group tag, excluding named people, declaring public
+holidays for the pro-rating, moving the billing standard off 1250 h, and setting
+the page title. It also cannot print the per-person table to a terminal.
+
+## The Python build
+
+From the same checkout, with [uv](https://docs.astral.sh/uv/), into a project
+virtualenv:
+
+```bash
 uv venv                      # creates .venv on Python >=3.10
 uv pip install -e ".[dev]"
 source .venv/bin/activate    # or prefix commands with `uv run`
@@ -55,7 +85,7 @@ Or with pip into an environment of your own:
 pip install -e ".[dev]"
 ```
 
-## Run
+Then:
 
 ```bash
 cicero-hours Timer_budsjettert_og_registrert.csv \
@@ -67,7 +97,10 @@ cicero-hours Timer_budsjettert_og_registrert.csv \
 
 Or without installing, from a checkout: `python build_dashboard.py ...`
 
-The output inlines plotly.js, so it opens offline and can be shared as one file.
+This output also inlines plotly.js and opens offline, but unlike the browser
+build it has the export baked into it: it is a rendering of one group's hours,
+not an empty page waiting for a file. Convenient to keep, and personal data to
+handle accordingly.
 
 | Flag | Default | What it does |
 |---|---|---|
@@ -147,10 +180,21 @@ are not transferable at all, and nothing in the export marks them.
 ## Data protection
 
 **The export is personal data about named staff. Do not commit it.** `.gitignore`
-excludes `*.csv`, `*.xlsx`, `data/`, any rendered `*_dashboard.html` and any saved
-`*_plan.txt`, since the rendered page embeds the same information and a plan names
-who is being asked to do what. The test suite builds its own synthetic
+excludes `*.csv`, `*.xlsx`, `data/`, any rendered `*_dashboard.html`, `dist/` and
+any saved `*_plan.txt`, since a rendered page embeds the same information and a
+plan names who is being asked to do what. The test suite builds its own synthetic
 export in `tests/synthetic.py` rather than relying on a real one.
+
+Neither build uploads anything. There is no server that receives an export: the
+hosted page is a static file GitHub hands you, and once it is in your browser it
+has no `fetch`, no analytics and no service worker. That is worth saying out loud
+because "drop your staff data onto this web page" is otherwise a reasonable thing
+to be suspicious of. Hosting costs you the page load — GitHub logs IP, user agent
+and referrer, as any web server would — and nothing about the file you open.
+
+The two builds differ in what the HTML holds afterwards. The browser build's page
+is empty until someone opens a file in it, so it is safe to circulate; the Python
+build's page is the data.
 
 ## What the export actually contains
 
@@ -187,6 +231,17 @@ export in `tests/synthetic.py` rather than relying on a real one.
 
 ## Layout
 
+Three trees. `spec/` is what the other two share, and is why they agree:
+
+| File | Job |
+|---|---|
+| `spec/rules.json` | Account numbers, job-number floor, table signatures, the billing standard. |
+| `spec/board.js` | The allocation board's runtime, one file, loaded verbatim by both builds. |
+| `spec/board.css`, `spec/shell.css` | The styling, likewise read as-is by both. |
+| `spec/expected.json` | Model output for the synthetic export, the fixed point the cross-check asserts against. |
+
+`cicero_hours/` is the Python build:
+
 | Module | Job |
 |---|---|
 | `loader.py` | Finds the tables inside the export by column signature. |
@@ -196,10 +251,17 @@ export in `tests/synthetic.py` rather than relying on a real one.
 | `dashboard.py` | Page shell, KPI strip, tabs, notes. |
 | `cli.py` | Argument parsing. |
 
+`web/src/` is the browser build, a module-for-module port of the same pipeline —
+`loader.js`, `model.js`, `figures.js`, `board.js` — plus `app.js` for the file
+drop, the shell and the tabs. `web/build.js` bundles the lot with esbuild and
+inlines plotly's cartesian distribution, which is the ~1.4 MB rather than the
+4.9 MB of the full one and the difference between an emailable file and one that
+bounces.
+
 Adding a view means one function in `figures.py` and one entry in the `tabs` list
-in `dashboard.py`. Account numbers, the project job-number floor and the
-unallocated pseudo-employee name are constants at the top of `model.py`; change
-them there if the finance system changes.
+in `dashboard.py` — then the same in `web/src/figures.js` and the `FIGURES_FOR`
+table in `web/src/app.js`. Constants belong in `spec/rules.json`, where both
+builds read them; change them there if the finance system changes.
 
 ## Development
 
@@ -208,13 +270,27 @@ pytest -q
 ruff check .
 ```
 
-The allocation board is browser code, so it is tested in a DOM rather than by
-pytest:
+The rest is browser code, so it is tested in a DOM rather than by pytest:
 
 ```bash
-npm install          # jsdom, dev only
-npm run test:board   # builds a dashboard from the synthetic export and drives it
+npm install
+npm run test:board       # the board, in the Python-rendered dashboard
+npm run test:board:web   # the same assertions, in the browser build
+npm run test:cross       # the JS loader and model against spec/expected.json
+npm run test:shell       # the browser build end to end, from file drop to figures
+npm run test:size        # guards the 2.5 MiB budget on the built file
 ```
+
+`test:board` renders a dashboard first, so it wants the Python build installed
+and on the path; the others need only Node and a `python3` that can write the
+synthetic export.
+
+`test:cross` is the load-bearing one. Two builds that disagree about a number
+would be worse than one build, so the JavaScript's model output is asserted key
+by key against `spec/expected.json`; a Python change that moves a number and a
+JavaScript change that fails to follow both fail it. Regenerate that file with
+`python scripts/emit_expected.py` deliberately, in the same commit as the change
+that moved the numbers.
 
 ## Licence
 
