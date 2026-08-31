@@ -1,9 +1,15 @@
 {
   "_readme": "Shared domain constants for the Python build and, later, the browser build. Keep this the single source of truth; the two implementations cannot disagree about whether account 10506 is internal time if the number lives in one place.",
 
+  "_internal_project_readme": "Some projects sit on project job numbers but are funded from CICERO's own strategic pot rather than by a customer, and the finance system marks them with their own activity code. They are project work and they are budgeted, but no invoice comes out of them: every such row carries a zero billing price. Funding is a property of the project rather than of the row, so a job counts as internally funded if any of its rows carry the code. internal_project_label is what the dashboard calls the programme; if it is renamed, change it here and both builds follow.",
+
   "project_job_floor": 31000,
   "absence_jobs": [10503],
   "internal_jobs": [10501, 10506],
+
+  "internal_project_activity": 1013,
+  "internal_project_label": "Towards2040",
+  "external_project_label": "External projects",
 
   "unallocated_person": "Forsker Climate Mitigation",
 

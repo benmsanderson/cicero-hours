@@ -26,6 +26,20 @@ INTERNAL_JOBS: set[int] = {int(j) for j in _DATA["internal_jobs"]}
 UNALLOCATED_PERSON: str = str(_DATA["unallocated_person"])
 CATEGORY_ORDER: list[str] = list(_DATA["category_order"])
 
+# Project work funded from CICERO's own strategic pot rather than by a customer.
+# The finance system gives it its own activity code; see spec/rules.json.
+INTERNAL_PROJECT_ACTIVITY: int = int(_DATA["internal_project_activity"])
+INTERNAL_PROJECT_LABEL: str = str(_DATA["internal_project_label"])
+EXTERNAL_PROJECT_LABEL: str = str(_DATA["external_project_label"])
+
+# Project time split by where the money comes from, in stacking order. The
+# two halves take the place of the single "Project" category.
+TYPE_ORDER: list[str] = [
+    EXTERNAL_PROJECT_LABEL,
+    INTERNAL_PROJECT_LABEL,
+    *(c for c in CATEGORY_ORDER if c != "Project"),
+]
+
 BILLABLE_HOURS_DEFAULT: float = float(_DATA["billable_hours_default"])
 
 TABLE_SIGNATURES: list[tuple[str, set[str]]] = [

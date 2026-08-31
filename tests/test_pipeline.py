@@ -8,7 +8,12 @@ from cicero_hours import figures as F
 from cicero_hours.board import board_data, board_html
 from cicero_hours.dashboard import build_dashboard
 from cicero_hours.loader import load_export
-from cicero_hours.model import Assumptions, build_group
+from cicero_hours.model import (
+    EXTERNAL_PROJECT_LABEL,
+    INTERNAL_PROJECT_LABEL,
+    Assumptions,
+    build_group,
+)
 
 from .synthetic import write_export
 
@@ -50,14 +55,52 @@ def test_registered_rows_collapse_across_activity_codes(group):
     alpha = group.registered.query("person == 'Ada Lovelace' and project == 'ALPHA'")
     assert len(alpha) == 1, "the two time rows merge; the empty cost row is dropped"
     assert alpha["hours"].sum() == pytest.approx(400.0)
-    assert not (group.registered["hours"] == 0).any()
+    # A row carrying neither hours nor money is dropped. A cost-only row is not:
+    # travel booked to a project has a price and no hours, and the real export is
+    # full of them.
+    empty = (group.registered["hours"] == 0) & (group.registered["value"] == 0)
+    assert not empty.any()
 
 
 def test_time_splits_into_project_internal_and_absence(group):
     by_cat = group.registered.groupby("category")["hours"].sum()
-    assert by_cat["Project"] == pytest.approx(600.0)
+    # 400 h on Alpha plus the 250 h booked to Beta, which is project time however
+    # it is funded.
+    assert by_cat["Project"] == pytest.approx(650.0)
     assert by_cat["Internal"] == pytest.approx(210.0)
     assert by_cat["Absence"] == pytest.approx(210.0)
+
+
+def test_internally_funded_project_time_splits_out(group):
+    by_type = group.registered_by_type(2026)
+    assert by_type.loc["Ada Lovelace", EXTERNAL_PROJECT_LABEL] == pytest.approx(400.0)
+    assert by_type.loc["Ada Lovelace", INTERNAL_PROJECT_LABEL] == pytest.approx(50.0)
+    assert by_type.loc["Grace Hopper", EXTERNAL_PROJECT_LABEL] == pytest.approx(0.0)
+    assert by_type.loc["Grace Hopper", INTERNAL_PROJECT_LABEL] == pytest.approx(200.0)
+
+
+def test_the_split_moves_no_hours_in_or_out_of_project_time(group):
+    by_type = group.registered_by_type(2026)
+    by_cat = group.registered_by_category(2026)
+    assert by_type.sum().sum() == pytest.approx(by_cat.sum().sum())
+    halves = by_type[EXTERNAL_PROJECT_LABEL] + by_type[INTERNAL_PROJECT_LABEL]
+    assert halves.sum() == pytest.approx(by_cat["Project"].sum())
+
+
+def test_funding_belongs_to_the_project_not_the_row(group):
+    """Beta's travel row carries an ordinary activity code, not the marker."""
+    beta = group.registered.query("project == 'BETA'")
+    assert beta["internal_project"].all()
+    travel = beta[beta["task"].str.startswith("30")]
+    assert len(travel) == 1 and travel["hours"].iloc[0] == 0
+    off_project = group.registered["category"] != "Project"
+    assert not group.registered.loc[off_project, "internal_project"].any()
+
+
+def test_composition_stacks_project_time_before_everything_else(group):
+    names = [t.name for t in F.fig_registered_composition(group, 2026).data]
+    assert names[:2] == [EXTERNAL_PROJECT_LABEL, INTERNAL_PROJECT_LABEL]
+    assert names.index("Internal") > names.index(INTERNAL_PROJECT_LABEL)
 
 
 def test_budget_covers_project_accounts_only(group):
@@ -318,7 +361,7 @@ def test_board_opens_on_the_year_with_most_unassigned_time(group):
 def test_board_annualises_each_persons_own_billing_rate(group):
     rate = board_data(group)["rate"]
     frac = group.assumptions.year_fraction(2026)
-    assert rate["Ada Lovelace"] == pytest.approx(round(400.0 / frac, -1))
+    assert rate["Ada Lovelace"] == pytest.approx(round(450.0 / frac, -1))
     assert "Grace Hopper" in rate
 
 

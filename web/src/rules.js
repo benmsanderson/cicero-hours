@@ -9,6 +9,20 @@ export const ABSENCE_JOBS = new Set(raw.absence_jobs);
 export const INTERNAL_JOBS = new Set(raw.internal_jobs);
 export const UNALLOCATED_PERSON = raw.unallocated_person;
 export const CATEGORY_ORDER = raw.category_order.slice();
+
+// Project work funded from CICERO's own strategic pot rather than by a
+// customer, which the finance system marks with its own activity code.
+export const INTERNAL_PROJECT_ACTIVITY = raw.internal_project_activity;
+export const INTERNAL_PROJECT_LABEL = raw.internal_project_label;
+export const EXTERNAL_PROJECT_LABEL = raw.external_project_label;
+
+// Project time split by where the money comes from, in stacking order:
+// the two halves take the place of the single 'Project' category.
+export const TYPE_ORDER = [
+  EXTERNAL_PROJECT_LABEL,
+  INTERNAL_PROJECT_LABEL,
+  ...CATEGORY_ORDER.filter(c => c !== 'Project'),
+];
 export const BILLABLE_HOURS_DEFAULT = raw.billable_hours_default;
 
 // [{name, columns: Set<string>}]. The "first match wins, most specific first"

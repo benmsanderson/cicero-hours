@@ -12,8 +12,12 @@ from ._rules import (
     ABSENCE_JOBS,
     BILLABLE_HOURS_DEFAULT,
     CATEGORY_ORDER,
+    EXTERNAL_PROJECT_LABEL,
     INTERNAL_JOBS,
+    INTERNAL_PROJECT_ACTIVITY,
+    INTERNAL_PROJECT_LABEL,
     PROJECT_JOB_FLOOR,
+    TYPE_ORDER,
     UNALLOCATED_PERSON,
 )
 from .loader import RawExport
@@ -24,9 +28,13 @@ __all__ = [
     "ABSENCE_JOBS",
     "Assumptions",
     "CATEGORY_ORDER",
+    "EXTERNAL_PROJECT_LABEL",
     "Group",
     "INTERNAL_JOBS",
+    "INTERNAL_PROJECT_ACTIVITY",
+    "INTERNAL_PROJECT_LABEL",
     "PROJECT_JOB_FLOOR",
+    "TYPE_ORDER",
     "UNALLOCATED_PERSON",
     "build_group",
     "tidy_budget",
@@ -108,6 +116,21 @@ def tidy_budget(raw: RawExport) -> pd.DataFrame:
     return out.dropna(subset=["year"]).reset_index(drop=True)
 
 
+def _internal_projects(df: pd.DataFrame) -> pd.Series:
+    """Flag rows belonging to a project CICERO funds itself.
+
+    Towards2040 and its like are booked to ordinary project job numbers, so the
+    job number cannot tell them apart from customer work; the finance system
+    marks them with their own activity code instead. Where the money comes from
+    is a property of the project rather than of the row, so a job is internally
+    funded if any of its rows carry the code — otherwise a cost-only row on the
+    same job would land on the other side of the split from the hours.
+    """
+    marked = df.loc[df["activity"] == INTERNAL_PROJECT_ACTIVITY, "project_no"]
+    jobs = set(marked.dropna())
+    return df["project_no"].isin(jobs) & df["category"].eq("Project")
+
+
 def tidy_registered(raw: RawExport) -> pd.DataFrame:
     df = raw.require("registered").copy()
     out = pd.DataFrame(
@@ -126,10 +149,11 @@ def tidy_registered(raw: RawExport) -> pd.DataFrame:
     )
     out["project"] = out["project_full"].map(_project_label)
     out["category"] = out["project_no"].map(_category)
+    out["internal_project"] = _internal_projects(out)
     # The registered table carries several rows per key, one per activity code,
     # including pure cost rows with zero hours. Collapse to the analysis key.
     keys = ["person", "project_no", "project", "project_full", "task", "year",
-            "category", "group_tag"]
+            "category", "internal_project", "group_tag"]
     out = (
         out.groupby(keys, dropna=False, as_index=False)
         .agg(hours=("hours", "sum"), value=("value", "sum"))
@@ -185,6 +209,28 @@ class Group:
         return (
             df.pivot_table(index="person", columns="category", values="hours", aggfunc="sum")
             .reindex(columns=CATEGORY_ORDER)
+            .fillna(0.0)
+        )
+
+    def registered_by_type(self, year: int | None = None) -> pd.DataFrame:
+        """As registered_by_category, but with project time split by its funding.
+
+        Externally funded work and CICERO's own strategic projects are both
+        project time and both count against the billing standard; they are
+        simply worth telling apart, since only one of them raises an invoice.
+        The other categories are untouched, and the two halves stack in the
+        place the single Project column held.
+        """
+        df = self.registered
+        if year is not None:
+            df = df[df["year"] == year]
+        kind = df["category"].astype(object).mask(
+            df["category"].eq("Project"), EXTERNAL_PROJECT_LABEL
+        ).mask(df["internal_project"], INTERNAL_PROJECT_LABEL)
+        return (
+            df.assign(kind=kind)
+            .pivot_table(index="person", columns="kind", values="hours", aggfunc="sum")
+            .reindex(columns=TYPE_ORDER)
             .fillna(0.0)
         )
 

@@ -10,7 +10,14 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from .model import CATEGORY_ORDER, UNALLOCATED_PERSON, Group
+from .model import (
+    CATEGORY_ORDER,
+    EXTERNAL_PROJECT_LABEL,
+    INTERNAL_PROJECT_LABEL,
+    TYPE_ORDER,
+    UNALLOCATED_PERSON,
+    Group,
+)
 
 INK = "#12181F"
 MUTED = "#6A7683"
@@ -22,6 +29,16 @@ CATEGORY_COLOURS = {
     "Internal": "#7E8FA0",
     "Absence": "#C6CED6",
     "Other": "#E4E8EC",
+}
+
+# Project time split by where the money comes from. The two halves keep the
+# Project hue — they are the same kind of work, and both count against the
+# billing standard — with the internally funded one a tint lighter, far enough
+# from the grey of internal CICERO time to read as a different thing.
+TYPE_COLOURS = {
+    **{k: v for k, v in CATEGORY_COLOURS.items() if k != "Project"},
+    EXTERNAL_PROJECT_LABEL: CATEGORY_COLOURS["Project"],
+    INTERNAL_PROJECT_LABEL: "#4A8F9C",
 }
 
 UNALLOCATED_COLOUR = "#C98F2B"
@@ -201,16 +218,16 @@ def fig_group_capacity(group: Group) -> go.Figure:
 
 
 def fig_registered_composition(group: Group, year: int) -> go.Figure:
-    df = group.registered_by_category(year)
+    df = group.registered_by_type(year)
     df = df.loc[df.sum(axis=1).sort_values().index]
     fig = go.Figure()
-    for cat in CATEGORY_ORDER:
-        if cat not in df or df[cat].sum() == 0:
+    for kind in TYPE_ORDER:
+        if kind not in df or df[kind].sum() == 0:
             continue
         fig.add_bar(
-            y=df.index, x=df[cat], name=cat, orientation="h",
-            marker_color=CATEGORY_COLOURS[cat],
-            hovertemplate="%{y}<br>" + cat + ": %{x:,.0f} h<extra></extra>",
+            y=df.index, x=df[kind], name=kind, orientation="h",
+            marker_color=TYPE_COLOURS[kind],
+            hovertemplate="%{y}<br>" + kind + ": %{x:,.0f} h<extra></extra>",
         )
     frac = group.assumptions.year_fraction(year)
     expected = group.assumptions.billable_hours * frac
@@ -219,6 +236,8 @@ def fig_registered_composition(group: Group, year: int) -> go.Figure:
         **_base_layout(
             f"Hours registered in {year}, by type",
             f"Project time is stacked first, so the rule reads directly against it. "
+            f"{INTERNAL_PROJECT_LABEL} is project work CICERO funds itself: it counts "
+            f"towards the standard like any other project time, but raises no invoice. "
             f"Billing standard pro-rated to {frac:.0%} of the working year.",
             height=max(380, 34 * len(df) + 130),
         ),

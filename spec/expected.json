@@ -75,7 +75,7 @@
       ]
     },
     "rate": {
-      "Ada Lovelace": 800.0,
+      "Ada Lovelace": 900.0,
       "Grace Hopper": 400.0
     },
     "second_groups": {
@@ -134,7 +134,7 @@
       "second_group": "Atmosfæreforskning / Atmospheric Sciences",
       "task": "10 - Tid",
       "unallocated": false,
-      "value": 750000,
+      "value": 0,
       "year": 2026
     },
     {
@@ -426,7 +426,7 @@
           "visible": true,
           "x": [
             200.0,
-            400.0
+            450.0
           ],
           "y": [
             "Grace Hopper",
@@ -510,7 +510,7 @@
       "menus": [
         {
           "label": "Ada Lovelace",
-          "title_text": "<b>Ada Lovelace</b><br><span style=\"font-size:12px;color:#6A7683\">800 h budgeted across 1 project in 2026 · 400 h booked · 0 h absence · 0 h internal</span>",
+          "title_text": "<b>Ada Lovelace</b><br><span style=\"font-size:12px;color:#6A7683\">800 h budgeted across 1 project in 2026 · 450 h booked · 0 h absence · 0 h internal</span>",
           "visible": [
             true,
             true,
@@ -826,7 +826,7 @@
           "orientation": "h",
           "type": "bar",
           "x": [
-            200.0,
+            250.0,
             400.0
           ],
           "y": [
@@ -1065,11 +1065,27 @@
           "marker": {
             "color": "#1F5F6B"
           },
-          "name": "Project",
+          "name": "External projects",
           "orientation": "h",
           "type": "bar",
           "x": [
             400.0,
+            0.0
+          ],
+          "y": [
+            "Ada Lovelace",
+            "Grace Hopper"
+          ]
+        },
+        {
+          "marker": {
+            "color": "#4A8F9C"
+          },
+          "name": "Towards2040",
+          "orientation": "h",
+          "type": "bar",
+          "x": [
+            50.0,
             200.0
           ],
           "y": [
@@ -1153,14 +1169,14 @@
         "Absence": 0.0,
         "Internal": 0.0,
         "Other": 0.0,
-        "Project": 400.0,
+        "Project": 450.0,
         "billable_target": 1250.0,
         "expected_to_date": 398.467433,
         "n_projects": 1,
         "person": "Ada Lovelace",
         "project_budget": 800,
-        "registered_total": 400.0,
-        "variance": 1.532567
+        "registered_total": 450.0,
+        "variance": 51.532567
       },
       {
         "Absence": 210.0,
@@ -1232,7 +1248,7 @@
       "budget_unallocated": 0.0,
       "pm": "Grace Hopper",
       "project": "BETA",
-      "registered": 200.0,
+      "registered": 250.0,
       "year": 2026
     },
     {
@@ -1250,6 +1266,7 @@
       "category": "Project",
       "group_tag": "Utslippsreduksjon / Climate Mitigation",
       "hours": 400.0,
+      "internal_project": false,
       "person": "Ada Lovelace",
       "project": "ALPHA",
       "project_full": "31001 - ALPHA",
@@ -1259,9 +1276,23 @@
       "year": 2026
     },
     {
+      "category": "Project",
+      "group_tag": "Utslippsreduksjon / Climate Mitigation",
+      "hours": 50.0,
+      "internal_project": true,
+      "person": "Ada Lovelace",
+      "project": "BETA",
+      "project_full": "31002 - BETA",
+      "project_no": 31002,
+      "task": "10 - Tid",
+      "value": 0,
+      "year": 2026
+    },
+    {
       "category": "Absence",
       "group_tag": "Utslippsreduksjon / Climate Mitigation",
       "hours": 22.5,
+      "internal_project": false,
       "person": "Grace Hopper",
       "project": "Fravær",
       "project_full": "10503 - Fravær",
@@ -1274,6 +1305,7 @@
       "category": "Absence",
       "group_tag": "Utslippsreduksjon / Climate Mitigation",
       "hours": 187.5,
+      "internal_project": false,
       "person": "Grace Hopper",
       "project": "Fravær",
       "project_full": "10503 - Fravær",
@@ -1286,6 +1318,7 @@
       "category": "Internal",
       "group_tag": "Utslippsreduksjon / Climate Mitigation",
       "hours": 150.0,
+      "internal_project": false,
       "person": "Grace Hopper",
       "project": "CICERO-tid Research 1",
       "project_full": "10506 - CICERO-tid Research 1",
@@ -1298,6 +1331,7 @@
       "category": "Internal",
       "group_tag": "Utslippsreduksjon / Climate Mitigation",
       "hours": 60.0,
+      "internal_project": false,
       "person": "Grace Hopper",
       "project": "CICERO-tid Research 1",
       "project_full": "10506 - CICERO-tid Research 1",
@@ -1310,12 +1344,26 @@
       "category": "Project",
       "group_tag": "Utslippsreduksjon / Climate Mitigation",
       "hours": 200.0,
+      "internal_project": true,
       "person": "Grace Hopper",
       "project": "BETA",
       "project_full": "31002 - BETA",
       "project_no": 31002,
       "task": "10 - Tid",
-      "value": 300000,
+      "value": 0,
+      "year": 2026
+    },
+    {
+      "category": "Project",
+      "group_tag": "Utslippsreduksjon / Climate Mitigation",
+      "hours": 0.0,
+      "internal_project": true,
+      "person": "Grace Hopper",
+      "project": "BETA",
+      "project_full": "31002 - BETA",
+      "project_no": 31002,
+      "task": "30 - Reiser",
+      "value": 12000,
       "year": 2026
     }
   ],

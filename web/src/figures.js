@@ -4,7 +4,7 @@
 // and layout constants stay identical between the two builds so a semantic
 // cross-check on the trace data catches the moment they part company.
 
-import { CATEGORY_ORDER, UNALLOCATED_PERSON } from './rules.js';
+import { CATEGORY_ORDER, INTERNAL_PROJECT_LABEL, TYPE_ORDER, UNALLOCATED_PERSON } from './rules.js';
 import { yearFraction } from './model.js';
 import {
   BUDGET_COLOUR,
@@ -15,6 +15,7 @@ import {
   MUTED,
   OVER_ZONE,
   REGISTERED_COLOUR,
+  TYPE_COLOURS,
   UNALLOCATED_COLOUR,
   personColours,
   projectColours,
@@ -228,21 +229,21 @@ export function figGroupCapacity(group) {
 
 // Hours registered in one year, split by category, one row per person.
 export function figRegisteredComposition(group, year) {
-  const bins = group.registered_by_category(year);  // Map<person, {Project, Internal, Absence, Other}>
+  const bins = group.registered_by_type(year);  // Map<person, {External projects, ...}>
   const totals = new Map();
-  for (const [p, c] of bins) totals.set(p, CATEGORY_ORDER.reduce((s, k) => s + (c[k] || 0), 0));
+  for (const [p, c] of bins) totals.set(p, TYPE_ORDER.reduce((s, k) => s + (c[k] || 0), 0));
   // sort ascending so the biggest sits at the top of the horizontal bar
   const order = [...bins.keys()].sort((a, b) => totals.get(a) - totals.get(b));
 
   const traces = [];
-  for (const cat of CATEGORY_ORDER) {
-    const values = order.map(p => bins.get(p)[cat] || 0);
+  for (const kind of TYPE_ORDER) {
+    const values = order.map(p => bins.get(p)[kind] || 0);
     if (values.reduce((s, v) => s + v, 0) === 0) continue;
     traces.push({
-      type: 'bar', orientation: 'h', name: cat,
+      type: 'bar', orientation: 'h', name: kind,
       y: order, x: values,
-      marker: { color: CATEGORY_COLOURS[cat] },
-      hovertemplate: '%{y}<br>' + cat + ': %{x:,.0f} h<extra></extra>',
+      marker: { color: TYPE_COLOURS[kind] },
+      hovertemplate: '%{y}<br>' + kind + ': %{x:,.0f} h<extra></extra>',
     });
   }
 
@@ -253,6 +254,8 @@ export function figRegisteredComposition(group, year) {
     ...baseLayout(
       `Hours registered in ${year}, by type`,
       'Project time is stacked first, so the rule reads directly against it. ' +
+      `${INTERNAL_PROJECT_LABEL} is project work CICERO funds itself: it counts ` +
+      'towards the standard like any other project time, but raises no invoice. ' +
       `Billing standard pro-rated to ${Math.round(frac * 100)}% of the working year.`,
       height,
     ),

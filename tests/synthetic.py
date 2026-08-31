@@ -3,8 +3,9 @@
 The real export is personal data and never enters the repository, so the tests
 build their own file: three concatenated tables, quoted fields, CRLF endings,
 a leading block with no usable key, and the quirks that matter (cost-only rows
-with zero hours, repeated activity codes, the unallocated pseudo-employee, and a
-colleague from outside the group whose rows carry no group tag).
+with zero hours, repeated activity codes, a project CICERO funds itself, the
+unallocated pseudo-employee, and a colleague from outside the group whose rows
+carry no group tag).
 """
 
 from __future__ import annotations
@@ -30,14 +31,25 @@ REGISTERED = [
     '"1000","31001","Alpha project","2026","300","300","450000","0","0","G04",'
     '"Utslippsreduksjon / Climate Mitigation","",""',
     '"RESEARCH 1","Ada Lovelace","31001 - ALPHA","ABC","Ada Lovelace","10 - Tid","10",'
-    '"1013","31001","Alpha project","2026","100","100","150000","0","0","G04",'
+    '"1012","31001","Alpha project","2026","100","100","150000","0","0","G04",'
     '"Utslippsreduksjon / Climate Mitigation","",""',
     # A cost-only row: no hours, must not create a phantom entry.
     '"RESEARCH 1","Ada Lovelace","31001 - ALPHA","ABC","Ada Lovelace","30 - Reiser","30",'
     '"4757","31001","Alpha project","2026","0","0","0","0","0","G04",'
     '"Utslippsreduksjon / Climate Mitigation","",""',
+    # Beta is funded from CICERO's own pot rather than by a customer: a project
+    # job number like any other, but marked with activity 1013 and billing nothing.
     '"RESEARCH 1","Grace Hopper","31002 - BETA","DEF","Grace Hopper","10 - Tid","10",'
-    '"1000","31002","Beta project","2026","200","200","300000","0","0","G04",'
+    '"1013","31002","#Towards2040 Beta project","2026","200","200","0","0","0","G04",'
+    '"Utslippsreduksjon / Climate Mitigation","G06","Atmosfæreforskning / Atmospheric Sciences"',
+    '"RESEARCH 1","Ada Lovelace","31002 - BETA","DEF","Grace Hopper","10 - Tid","10",'
+    '"1013","31002","#Towards2040 Beta project","2026","50","50","0","0","0","G04",'
+    '"Utslippsreduksjon / Climate Mitigation","",""',
+    # A cost row on that same project carrying an ordinary activity code. Where
+    # the money comes from belongs to the job, not the row, so this must land on
+    # the internally funded side of the split with the rest of Beta.
+    '"RESEARCH 1","Grace Hopper","31002 - BETA","DEF","Grace Hopper","30 - Reiser","30",'
+    '"4757","31002","#Towards2040 Beta project","2026","0","0","12000","0","0","G04",'
     '"Utslippsreduksjon / Climate Mitigation","G06","Atmosfæreforskning / Atmospheric Sciences"',
     # Internal time and absence, which the budget table does not cover. Several
     # tasks each, since the task is the only detail the export gives about time
@@ -74,16 +86,18 @@ BUDGET = [
     '"RESEARCH 1","ABC","Ada Lovelace","Ada Lovelace","31001 - ALPHA","10 - Tid","10","1000",'
     '"31001","Alpha project","2027","G04","Utslippsreduksjon / Climate Mitigation","","",'
     '"400","400","620000"',
-    '"RESEARCH 1","DEF","Grace Hopper","Grace Hopper","31002 - BETA","10 - Tid","10","1000",'
-    '"31002","Beta project","2026","G04","Utslippsreduksjon / Climate Mitigation","G06",'
-    '"Atmosfæreforskning / Atmospheric Sciences","500","500","750000"',
+    '"RESEARCH 1","DEF","Grace Hopper","Grace Hopper","31002 - BETA","10 - Tid","10","1013",'
+    '"31002","#Towards2040 Beta project","2026","G04",'
+    '"Utslippsreduksjon / Climate Mitigation","G06",'
+    '"Atmosfæreforskning / Atmospheric Sciences","500","500","0"',
     # Hours budgeted to the group with nobody's name against them.
     '"RESEARCH 1","ABC","Ada Lovelace","Forsker Climate Mitigation","31001 - ALPHA",'
     '"10 - Tid","10","1000","31001","Alpha project","2027","G04",'
     '"Utslippsreduksjon / Climate Mitigation","","","600","600","930000"',
     # A zero-hour budget row, which should not appear as an allocation.
-    '"RESEARCH 1","DEF","Grace Hopper","Grace Hopper","31002 - BETA","10 - Tid","10","1000",'
-    '"31002","Beta project","2028","G04","Utslippsreduksjon / Climate Mitigation","","",'
+    '"RESEARCH 1","DEF","Grace Hopper","Grace Hopper","31002 - BETA","10 - Tid","10","1013",'
+    '"31002","#Towards2040 Beta project","2028","G04",'
+    '"Utslippsreduksjon / Climate Mitigation","","",'
     '"0","0","0"',
 ]
 

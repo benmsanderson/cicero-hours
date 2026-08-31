@@ -215,6 +215,14 @@ build's page is the data.
   drawing a calendar.
 * Registered rows repeat per activity code, including cost-only rows with no
   hours. `tidy_registered` collapses them to person / project / task / year.
+* Some projects sit on ordinary project job numbers but are funded from CICERO's
+  own strategic pot rather than by a customer — Towards2040 and its like. The job
+  number cannot tell them apart from customer work, so the finance system marks
+  them with an activity code of their own, and every such row bills nothing.
+  *Hours registered by type* on the Overview tab stacks the two apart. Both are
+  project time and both count against the billing standard; only one of them ends
+  in an invoice. The code and the label are in `spec/rules.json`, so a rename of
+  the programme is one line, read by both builds.
 * `Forsker Climate Mitigation` is not a colleague. It carries hours budgeted to
   the group with no name against them yet, and is drawn hatched throughout.
 * The export reaches beyond the group. Shared projects pull in colleagues from
