@@ -148,6 +148,7 @@ export function tidyRegistered(raw) {
       activity: toInt(row['Activity No.']),
       department: cleanStr(row['Avdeling']),
       group_tag: cleanStr(row['Employee Specification 5 Descr.']),
+      second_group: cleanStr(row['Employee Specification 6 Descr.']),
       project: projectFull === null ? 'Unknown' : projectLabel(projectFull),
       category: categoryOf(projectNo),
     });
@@ -167,7 +168,7 @@ export function tidyRegistered(raw) {
   // Collapse activity codes: several rows per key, one per activity, including
   // pure cost rows with zero hours. Group by the analysis key, sum hours and
   // value, drop rows that carry neither hours nor value.
-  const keys = ['person', 'project_no', 'project', 'project_full', 'task', 'year', 'category', 'internal_project', 'group_tag'];
+  const keys = ['person', 'project_no', 'project', 'project_full', 'task', 'year', 'category', 'internal_project', 'group_tag', 'second_group'];
   const groups = new Map();
   for (const r of rows) {
     const k = JSON.stringify(keys.map(c => r[c]));
@@ -234,8 +235,11 @@ export function buildGroup(raw, options = {}) {
 
   let budget = budget0, registered = registered0;
   if (tag !== null && tag !== undefined) {
-    budget = budget.filter(r => r.group_tag === tag);
-    registered = registered.filter(r => r.group_tag === tag);
+    // Someone whose Specification 6 names the group belongs to it too; a
+    // combined export carries their rows under their home group's tag.
+    const inGroup = r => r.group_tag === tag || r.second_group === tag;
+    budget = budget.filter(inGroup);
+    registered = registered.filter(inGroup);
   }
   if (options.exclude && options.exclude.length) {
     const excl = new Set(options.exclude);
@@ -291,12 +295,16 @@ export class Group {
     return [...s].sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
   }
 
+  // The second group for people whose home group this is, and the home group
+  // for people who belong here only as their second.
   second_groups() {
     const bins = new Map();
     for (const r of this.budget) {
-      if (r.second_group === null || r.person === null) continue;
+      const visiting = this.group_tag !== null && r.second_group === this.group_tag;
+      const other = visiting ? r.group_tag : r.second_group;
+      if (other === null || r.person === null) continue;
       const m = bins.get(r.person) || new Map();
-      m.set(r.second_group, (m.get(r.second_group) || 0) + 1);
+      m.set(other, (m.get(other) || 0) + 1);
       bins.set(r.person, m);
     }
     const out = {};

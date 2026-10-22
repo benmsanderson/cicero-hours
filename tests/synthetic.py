@@ -4,8 +4,9 @@ The real export is personal data and never enters the repository, so the tests
 build their own file: three concatenated tables, quoted fields, CRLF endings,
 a leading block with no usable key, and the quirks that matter (cost-only rows
 with zero hours, repeated activity codes, a project CICERO funds itself, the
-unallocated pseudo-employee, and a colleague from outside the group whose rows
-carry no group tag).
+unallocated pseudo-employee, a colleague from outside the group whose rows
+carry no group tag, and one from another group who works in this one as her
+second).
 """
 
 from __future__ import annotations
@@ -69,6 +70,11 @@ REGISTERED = [
     '"90 - Syk, Egenmelding/Sick Leave (Self-Certified)","90","9051","10503","Fravær",'
     '"2026","22.5","22.5","0","0","0","G04",'
     '"Utslippsreduksjon / Climate Mitigation","",""',
+    # Home group elsewhere, this one as her second: a combined export of several
+    # groups files her rows under her home group's tag, but she is ours too.
+    '"RESEARCH 1","Katherine Johnson","31001 - ALPHA","ABC","Ada Lovelace","10 - Tid","10",'
+    '"1000","31001","Alpha project","2026","120","120","180000","0","0","G01",'
+    '"Klimasystemet/Climate System","G04","Utslippsreduksjon / Climate Mitigation"',
     # Central staff: appears in the export but carries no group tag, so is not ours.
     '"DIRECTOR","Alan Turing","10501 - CICERO-tid Direktør","KÅM","Kårstein Måseide",'
     '"11 - Drift/Operations","11","9000","10501","CICERO-tid Direktør","2026","700","700",'
@@ -90,6 +96,9 @@ BUDGET = [
     '"31002","#Towards2040 Beta project","2026","G04",'
     '"Utslippsreduksjon / Climate Mitigation","G06",'
     '"Atmosfæreforskning / Atmospheric Sciences","500","500","0"',
+    '"RESEARCH 1","ABC","Ada Lovelace","Katherine Johnson","31001 - ALPHA","10 - Tid","10",'
+    '"1000","31001","Alpha project","2026","G01","Klimasystemet/Climate System","G04",'
+    '"Utslippsreduksjon / Climate Mitigation","300","300","450000"',
     # Hours budgeted to the group with nobody's name against them.
     '"RESEARCH 1","ABC","Ada Lovelace","Forsker Climate Mitigation","31001 - ALPHA",'
     '"10 - Tid","10","1000","31001","Alpha project","2027","G04",'

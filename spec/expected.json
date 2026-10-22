@@ -9,6 +9,9 @@
       },
       "Grace Hopper": {
         "2026": 500.0
+      },
+      "Katherine Johnson": {
+        "2026": 300.0
       }
     },
     "billable_hours": 1250.0,
@@ -52,13 +55,24 @@
         "pm": "Grace Hopper",
         "project": "BETA",
         "year": 2026
+      },
+      {
+        "hours": 300.0,
+        "id": "Katherine Johnson|ALPHA|2026",
+        "origin": "Katherine Johnson",
+        "owner": "Katherine Johnson",
+        "oyear": 2026,
+        "pm": "Ada Lovelace",
+        "project": "ALPHA",
+        "year": 2026
       }
     ],
     "default_year": 2027,
-    "fingerprint": "4 blocks / 2,300 h",
+    "fingerprint": "5 blocks / 2,600 h",
     "people": [
       "Ada Lovelace",
-      "Grace Hopper"
+      "Grace Hopper",
+      "Katherine Johnson"
     ],
     "plan_file": "allocation_plan.txt",
     "project_colour": {
@@ -76,10 +90,12 @@
     },
     "rate": {
       "Ada Lovelace": 900.0,
-      "Grace Hopper": 400.0
+      "Grace Hopper": 400.0,
+      "Katherine Johnson": 240.0
     },
     "second_groups": {
-      "Grace Hopper": "Atmospheric Sciences"
+      "Grace Hopper": "Atmospheric Sciences",
+      "Katherine Johnson": "Klimasystemet/Climate System"
     },
     "unallocated_person": "Forsker Climate Mitigation",
     "years": [
@@ -140,6 +156,22 @@
     {
       "category": "Project",
       "department": "RESEARCH 1",
+      "group_tag": "Klimasystemet/Climate System",
+      "hours": 300,
+      "person": "Katherine Johnson",
+      "pm": "Ada Lovelace",
+      "project": "ALPHA",
+      "project_full": "31001 - ALPHA",
+      "project_no": 31001,
+      "second_group": "Utslippsreduksjon / Climate Mitigation",
+      "task": "10 - Tid",
+      "unallocated": false,
+      "value": 450000,
+      "year": 2026
+    },
+    {
+      "category": "Project",
+      "department": "RESEARCH 1",
       "group_tag": "Utslippsreduksjon / Climate Mitigation",
       "hours": 600,
       "person": "Forsker Climate Mitigation",
@@ -177,7 +209,7 @@
     "fig_group_capacity": {
       "layout": {
         "annotation_texts": [
-          "2,500 h billable"
+          "3,750 h billable"
         ],
         "barmode": "stack",
         "height": 420,
@@ -197,7 +229,7 @@
             "2028"
           ],
           "y": [
-            1300,
+            1600,
             400,
             0
           ]
@@ -236,7 +268,8 @@
           "type": "heatmap",
           "x": [
             "Ada Lovelace",
-            "Grace Hopper"
+            "Grace Hopper",
+            "Katherine Johnson"
           ],
           "y": [
             "BETA",
@@ -245,11 +278,13 @@
           "z": [
             [
               null,
-              500.0
+              500.0,
+              null
             ],
             [
               800.0,
-              null
+              null,
+              300.0
             ]
           ]
         }
@@ -261,9 +296,10 @@
           "1,250 h billing standard"
         ],
         "barmode": "stack",
-        "height": 280,
+        "height": 288,
         "shape_count": 2,
         "yaxis_categoryarray": [
+          "Katherine Johnson",
           "Grace Hopper",
           "Ada Lovelace"
         ],
@@ -271,7 +307,7 @@
       },
       "menus": [
         {
-          "height": 280,
+          "height": 288,
           "label": "2026",
           "title_text": "<b>Hours budgeted per person, 2026</b><br><span style=\"font-size:12px;color:#6A7683\">Largest 6 projects each, labelled where they fit; the rest pooled in grey. 'Forsker Climate Mitigation' is unassigned group time.</span>",
           "visible": [
@@ -280,6 +316,7 @@
             false
           ],
           "yaxis_categoryarray": [
+            "Katherine Johnson",
             "Grace Hopper",
             "Ada Lovelace"
           ]
@@ -309,10 +346,12 @@
           "type": "bar",
           "visible": true,
           "x": [
-            800
+            800,
+            300
           ],
           "y": [
-            "Ada Lovelace"
+            "Ada Lovelace",
+            "Katherine Johnson"
           ]
         },
         {
@@ -353,9 +392,10 @@
       "layout": {
         "annotation_texts": [],
         "barmode": "overlay",
-        "height": 280,
+        "height": 282,
         "shape_count": 0,
         "yaxis_categoryarray": [
+          "Katherine Johnson",
           "Grace Hopper",
           "Ada Lovelace"
         ],
@@ -363,7 +403,7 @@
       },
       "menus": [
         {
-          "height": 280,
+          "height": 282,
           "label": "2026",
           "title_text": "<b>Project time against plan, 2026</b><br><span style=\"font-size:12px;color:#6A7683\">Absence and internal time excluded. Tick marks the straight-line expectation at 50% of 2026's working year.</span>",
           "visible": [
@@ -375,6 +415,7 @@
             false
           ],
           "yaxis_categoryarray": [
+            "Katherine Johnson",
             "Grace Hopper",
             "Ada Lovelace"
           ]
@@ -407,10 +448,12 @@
           "type": "bar",
           "visible": true,
           "x": [
+            300,
             500,
             800
           ],
           "y": [
+            "Katherine Johnson",
             "Grace Hopper",
             "Ada Lovelace"
           ]
@@ -425,10 +468,12 @@
           "type": "bar",
           "visible": true,
           "x": [
+            120.0,
             200.0,
             450.0
           ],
           "y": [
+            "Katherine Johnson",
             "Grace Hopper",
             "Ada Lovelace"
           ]
@@ -440,10 +485,12 @@
           "type": "scatter",
           "visible": true,
           "x": [
+            149.425287,
             249.042146,
             398.467433
           ],
           "y": [
+            "Katherine Johnson",
             "Grace Hopper",
             "Ada Lovelace"
           ]
@@ -521,6 +568,10 @@
             false,
             false,
             false,
+            false,
+            false,
+            false,
+            false,
             false
           ]
         },
@@ -534,6 +585,30 @@
             false,
             true,
             true,
+            true,
+            true,
+            true,
+            true,
+            false,
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "label": "Katherine Johnson",
+          "title_text": "<b>Katherine Johnson</b><br><span style=\"font-size:12px;color:#6A7683\">300 h budgeted across 1 project in 2026 · 120 h booked · 0 h absence · 0 h internal · part-time in Klimasystemet/Climate System</span>",
+          "visible": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
             true,
             true,
             true,
@@ -729,6 +804,80 @@
             "Ferie"
           ],
           "yaxis": "y3"
+        },
+        {
+          "legendgroup": "budget",
+          "marker": {
+            "color": "#A9B7C2"
+          },
+          "name": "Budgeted",
+          "offsetgroup": "budget",
+          "orientation": "h",
+          "type": "bar",
+          "visible": false,
+          "x": [
+            300
+          ],
+          "xaxis": "x",
+          "y": [
+            "ALPHA"
+          ],
+          "yaxis": "y"
+        },
+        {
+          "legendgroup": "booked",
+          "marker": {
+            "color": "#1F5F6B"
+          },
+          "name": "Booked",
+          "offsetgroup": "booked",
+          "orientation": "h",
+          "type": "bar",
+          "visible": false,
+          "x": [
+            120.0
+          ],
+          "xaxis": "x",
+          "y": [
+            "ALPHA"
+          ],
+          "yaxis": "y"
+        },
+        {
+          "legendgroup": "onplan",
+          "mode": "markers",
+          "name": "On plan",
+          "type": "scatter",
+          "visible": false,
+          "x": [
+            149.425287
+          ],
+          "xaxis": "x",
+          "y": [
+            "ALPHA"
+          ],
+          "yaxis": "y"
+        },
+        {
+          "marker": {
+            "color": "#1F5F6B"
+          },
+          "name": "ALPHA",
+          "offsetgroup": "forward",
+          "type": "bar",
+          "visible": false,
+          "x": [
+            "2026",
+            "2027",
+            "2028"
+          ],
+          "xaxis": "x2",
+          "y": [
+            300.0,
+            0.0,
+            0.0
+          ],
+          "yaxis": "y2"
         }
       ]
     },
@@ -751,10 +900,12 @@
           "orientation": "h",
           "type": "bar",
           "x": [
+            300.0,
             500.0,
             800.0
           ],
           "y": [
+            "Katherine Johnson",
             "Grace Hopper",
             "Ada Lovelace"
           ]
@@ -768,9 +919,11 @@
           "type": "bar",
           "x": [
             0.0,
+            0.0,
             400.0
           ],
           "y": [
+            "Katherine Johnson",
             "Grace Hopper",
             "Ada Lovelace"
           ]
@@ -784,9 +937,11 @@
           "type": "bar",
           "x": [
             0.0,
+            0.0,
             0.0
           ],
           "y": [
+            "Katherine Johnson",
             "Grace Hopper",
             "Ada Lovelace"
           ]
@@ -810,12 +965,12 @@
           "orientation": "h",
           "type": "bar",
           "x": [
-            500.0,
-            800.0
+            1100.0,
+            500.0
           ],
           "y": [
-            "BETA",
-            "ALPHA"
+            "ALPHA",
+            "BETA"
           ]
         },
         {
@@ -826,12 +981,12 @@
           "orientation": "h",
           "type": "bar",
           "x": [
-            250.0,
-            400.0
+            520.0,
+            250.0
           ],
           "y": [
-            "BETA",
-            "ALPHA"
+            "ALPHA",
+            "BETA"
           ]
         },
         {
@@ -839,12 +994,12 @@
           "name": "On plan at this date",
           "type": "scatter",
           "x": [
-            249.042146,
-            398.467433
+            547.89272,
+            249.042146
           ],
           "y": [
-            "BETA",
-            "ALPHA"
+            "ALPHA",
+            "BETA"
           ]
         }
       ]
@@ -863,6 +1018,7 @@
           "visible": [
             true,
             true,
+            true,
             false
           ]
         },
@@ -870,6 +1026,7 @@
           "label": "BETA",
           "title_text": "<b>Team on BETA</b><br><span style=\"font-size:12px;color:#6A7683\">Budgeted hours per person per year · led by Grace Hopper</span>",
           "visible": [
+            false,
             false,
             false,
             true
@@ -916,6 +1073,24 @@
         },
         {
           "marker": {
+            "color": "#4C7A3F"
+          },
+          "name": "Katherine Johnson",
+          "type": "bar",
+          "visible": true,
+          "x": [
+            "2026",
+            "2027",
+            "2028"
+          ],
+          "y": [
+            300.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "marker": {
             "color": "#6B4A72"
           },
           "name": "Grace Hopper",
@@ -953,7 +1128,7 @@
           "type": "bar",
           "x": [
             500,
-            800
+            1100
           ],
           "y": [
             "BETA",
@@ -1069,10 +1244,12 @@
           "orientation": "h",
           "type": "bar",
           "x": [
+            120.0,
             400.0,
             0.0
           ],
           "y": [
+            "Katherine Johnson",
             "Ada Lovelace",
             "Grace Hopper"
           ]
@@ -1085,10 +1262,12 @@
           "orientation": "h",
           "type": "bar",
           "x": [
+            0.0,
             50.0,
             200.0
           ],
           "y": [
+            "Katherine Johnson",
             "Ada Lovelace",
             "Grace Hopper"
           ]
@@ -1102,9 +1281,11 @@
           "type": "bar",
           "x": [
             0.0,
+            0.0,
             210.0
           ],
           "y": [
+            "Katherine Johnson",
             "Ada Lovelace",
             "Grace Hopper"
           ]
@@ -1118,9 +1299,11 @@
           "type": "bar",
           "x": [
             0.0,
+            0.0,
             210.0
           ],
           "y": [
+            "Katherine Johnson",
             "Ada Lovelace",
             "Grace Hopper"
           ]
@@ -1161,7 +1344,8 @@
   },
   "people": [
     "Ada Lovelace",
-    "Grace Hopper"
+    "Grace Hopper",
+    "Katherine Johnson"
   ],
   "person_summary": {
     "2026": [
@@ -1190,6 +1374,19 @@
         "project_budget": 500,
         "registered_total": 620.0,
         "variance": -49.042146
+      },
+      {
+        "Absence": 0.0,
+        "Internal": 0.0,
+        "Other": 0.0,
+        "Project": 120.0,
+        "billable_target": 1250.0,
+        "expected_to_date": 149.425287,
+        "n_projects": 1,
+        "person": "Katherine Johnson",
+        "project_budget": 300,
+        "registered_total": 120.0,
+        "variance": -29.425287
       }
     ],
     "2027": [
@@ -1225,12 +1422,12 @@
   },
   "project_summary": [
     {
-      "budget_named": 800,
-      "budget_total": 800.0,
+      "budget_named": 1100,
+      "budget_total": 1100.0,
       "budget_unallocated": 0.0,
       "pm": "Ada Lovelace",
       "project": "ALPHA",
-      "registered": 400.0,
+      "registered": 520.0,
       "year": 2026
     },
     {
@@ -1271,6 +1468,7 @@
       "project": "ALPHA",
       "project_full": "31001 - ALPHA",
       "project_no": 31001,
+      "second_group": null,
       "task": "10 - Tid",
       "value": 600000,
       "year": 2026
@@ -1284,6 +1482,7 @@
       "project": "BETA",
       "project_full": "31002 - BETA",
       "project_no": 31002,
+      "second_group": null,
       "task": "10 - Tid",
       "value": 0,
       "year": 2026
@@ -1297,6 +1496,7 @@
       "project": "Fravær",
       "project_full": "10503 - Fravær",
       "project_no": 10503,
+      "second_group": null,
       "task": "90 - Syk, Egenmelding/Sick Leave (Self-Certified)",
       "value": 0,
       "year": 2026
@@ -1310,6 +1510,7 @@
       "project": "Fravær",
       "project_full": "10503 - Fravær",
       "project_no": 10503,
+      "second_group": null,
       "task": "92 - Ferie",
       "value": 0,
       "year": 2026
@@ -1323,6 +1524,7 @@
       "project": "CICERO-tid Research 1",
       "project_full": "10506 - CICERO-tid Research 1",
       "project_no": 10506,
+      "second_group": null,
       "task": "11 - Drift/Operations",
       "value": 0,
       "year": 2026
@@ -1336,6 +1538,7 @@
       "project": "CICERO-tid Research 1",
       "project_full": "10506 - CICERO-tid Research 1",
       "project_no": 10506,
+      "second_group": null,
       "task": "11-2 - Prosjektutv. & akkv. Bidragsforskning/Project Development and Acquisition - Research funding",
       "value": 0,
       "year": 2026
@@ -1349,6 +1552,7 @@
       "project": "BETA",
       "project_full": "31002 - BETA",
       "project_no": 31002,
+      "second_group": "Atmosfæreforskning / Atmospheric Sciences",
       "task": "10 - Tid",
       "value": 0,
       "year": 2026
@@ -1362,14 +1566,30 @@
       "project": "BETA",
       "project_full": "31002 - BETA",
       "project_no": 31002,
+      "second_group": "Atmosfæreforskning / Atmospheric Sciences",
       "task": "30 - Reiser",
       "value": 12000,
+      "year": 2026
+    },
+    {
+      "category": "Project",
+      "group_tag": "Klimasystemet/Climate System",
+      "hours": 120.0,
+      "internal_project": false,
+      "person": "Katherine Johnson",
+      "project": "ALPHA",
+      "project_full": "31001 - ALPHA",
+      "project_no": 31001,
+      "second_group": "Utslippsreduksjon / Climate Mitigation",
+      "task": "10 - Tid",
+      "value": 180000,
       "year": 2026
     }
   ],
   "reporting_year": 2026,
   "second_groups": {
-    "Grace Hopper": "Atmosfæreforskning / Atmospheric Sciences"
+    "Grace Hopper": "Atmosfæreforskning / Atmospheric Sciences",
+    "Katherine Johnson": "Klimasystemet/Climate System"
   },
   "year_fractions": {
     "2026": 0.498084,

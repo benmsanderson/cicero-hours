@@ -66,7 +66,7 @@ def test_time_splits_into_project_internal_and_absence(group):
     by_cat = group.registered.groupby("category")["hours"].sum()
     # 400 h on Alpha plus the 250 h booked to Beta, which is project time however
     # it is funded.
-    assert by_cat["Project"] == pytest.approx(650.0)
+    assert by_cat["Project"] == pytest.approx(770.0)
     assert by_cat["Internal"] == pytest.approx(210.0)
     assert by_cat["Absence"] == pytest.approx(210.0)
 
@@ -122,7 +122,7 @@ def test_people_without_the_group_tag_are_filtered_out(group):
 
 def test_explicit_exclusions_apply_on_top_of_the_tag(export):
     g = build_group(load_export(export), exclude=("Grace Hopper",))
-    assert g.people == ["Ada Lovelace"]
+    assert g.people == ["Ada Lovelace", "Katherine Johnson"]
     assert "Grace Hopper" in g.excluded
 
 
@@ -133,7 +133,7 @@ def test_billable_target_defaults_to_the_billing_standard(group):
 def test_unallocated_is_flagged_and_kept_out_of_the_roster(group):
     assert group.budget["unallocated"].sum() == 1
     assert "Forsker Climate Mitigation" not in group.people
-    assert group.people == ["Ada Lovelace", "Grace Hopper"]
+    assert group.people == ["Ada Lovelace", "Grace Hopper", "Katherine Johnson"]
 
 
 def test_unallocated_excluded_from_person_summary(group):
@@ -192,13 +192,28 @@ def test_reporting_year_is_the_last_year_with_registrations(group):
 
 def test_second_group_tag_is_picked_up(group):
     assert group.second_groups() == {
-        "Grace Hopper": "Atmosfæreforskning / Atmospheric Sciences"
+        "Grace Hopper": "Atmosfæreforskning / Atmospheric Sciences",
+        "Katherine Johnson": "Klimasystemet/Climate System",
     }
+
+
+def test_people_whose_second_group_this_is_are_kept(group):
+    assert "Katherine Johnson" in group.people
+    assert group.registered.query("person == 'Katherine Johnson'")["hours"].sum() == 120
+    assert group.budget.query("person == 'Katherine Johnson'")["hours"].sum() == 300
+
+
+def test_the_home_group_sees_her_too(export):
+    g = build_group(load_export(export), group_tag="Klimasystemet/Climate System")
+    assert g.people == ["Katherine Johnson"]
+    assert g.second_groups() == {"Katherine Johnson": "Utslippsreduksjon / Climate Mitigation"}
 
 
 def test_project_team_spans_years(group):
     team = group.project_team("ALPHA")
-    assert set(team["person"]) == {"Ada Lovelace", "Forsker Climate Mitigation"}
+    assert set(team["person"]) == {
+        "Ada Lovelace", "Forsker Climate Mitigation", "Katherine Johnson"
+    }
     assert set(team["year"]) == {2026, 2027}
 
 
@@ -331,6 +346,7 @@ def test_board_makes_every_budgeted_hour_a_block(group):
     blocks = board_data(group)["blocks"]
     assert {(b["project"], b["year"], b["origin"]) for b in blocks} == {
         ("ALPHA", 2026, "Ada Lovelace"),
+        ("ALPHA", 2026, "Katherine Johnson"),
         ("ALPHA", 2027, "Ada Lovelace"),
         ("ALPHA", 2027, None),
         ("BETA", 2026, "Grace Hopper"),

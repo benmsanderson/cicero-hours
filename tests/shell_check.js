@@ -91,9 +91,9 @@ function check(name, cond, extra = '') {
   const value = i => kpis[i].querySelector('.value').textContent.trim();
   const label = i => kpis[i].querySelector('.label').textContent.trim();
 
-  check('KPI 0 headcount value',   value(0) === '2');
+  check('KPI 0 headcount value',   value(0) === '3');
   check('KPI 0 headcount label',   /people with hours/.test(label(0)));
-  check('KPI 1 budget total',      value(1) === '1,300');
+  check('KPI 1 budget total',      value(1) === '1,600');
   check('KPI 1 budget label',      /hours budgeted for 2026/.test(label(1)));
   check('KPI 2 over-standard value', value(2) === '0');
   check('KPI 2 over-standard label', /over the 1,250 h standard in 2026/.test(label(2)));
