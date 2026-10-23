@@ -5,8 +5,8 @@ build their own file: three concatenated tables, quoted fields, CRLF endings,
 a leading block with no usable key, and the quirks that matter (cost-only rows
 with zero hours, repeated activity codes, a project CICERO funds itself, the
 unallocated pseudo-employee, a colleague from outside the group whose rows
-carry no group tag, and one from another group who works in this one as her
-second).
+carry no group tag, one from another group who works in this one as her
+second, and one who belongs to that other group alone).
 """
 
 from __future__ import annotations
@@ -99,6 +99,10 @@ BUDGET = [
     '"RESEARCH 1","ABC","Ada Lovelace","Katherine Johnson","31001 - ALPHA","10 - Tid","10",'
     '"1000","31001","Alpha project","2026","G01","Klimasystemet/Climate System","G04",'
     '"Utslippsreduksjon / Climate Mitigation","300","300","450000"',
+    # Another group entirely: shown only when every group is asked for.
+    '"RESEARCH 2","ABC","Ada Lovelace","Rosalind Franklin","31001 - ALPHA","10 - Tid","10",'
+    '"1000","31001","Alpha project","2026","G01","Klimasystemet/Climate System","","",'
+    '"200","200","300000"',
     # Hours budgeted to the group with nobody's name against them.
     '"RESEARCH 1","ABC","Ada Lovelace","Forsker Climate Mitigation","31001 - ALPHA",'
     '"10 - Tid","10","1000","31001","Alpha project","2027","G04",'

@@ -12,7 +12,7 @@ import plotly.offline as pyo
 from . import figures as F
 from ._rules import SHELL_CSS as CSS
 from .board import BOARD_CSS, BOARD_JS, board_html
-from .model import UNALLOCATED_PERSON, Group
+from .model import UNALLOCATED_PERSON, Group, group_label
 
 JS = """
 const tabs = Array.from(document.querySelectorAll('nav button'));
@@ -124,7 +124,7 @@ def build_dashboard(group: Group, output: str | Path, title: str = "Climate Miti
     second = group.second_groups()
     second_note = (
         "Part of their time sits with another research group: "
-        + ", ".join(f"{p} ({g.split(' / ')[-1]})" for p, g in sorted(second.items()))
+        + ", ".join(f"{p} ({group_label(g)})" for p, g in sorted(second.items()))
         + ". "
     ) if second else ""
 

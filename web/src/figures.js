@@ -5,7 +5,7 @@
 // cross-check on the trace data catches the moment they part company.
 
 import { CATEGORY_ORDER, INTERNAL_PROJECT_LABEL, TYPE_ORDER, UNALLOCATED_PERSON } from './rules.js';
-import { yearFraction } from './model.js';
+import { groupLabel, yearFraction } from './model.js';
 import {
   BUDGET_COLOUR,
   CATEGORY_COLOURS,
@@ -843,7 +843,7 @@ export function figPersonDeepDive(group, year) {
   const buttons = people.map(person => {
     const row = summary.find(r => r.person === person);
     const second = seconds[person];
-    const tail = second ? ` · part-time in ${second.split(' / ').at(-1)}` : '';
+    const tail = second ? ` · part-time in ${groupLabel(second)}` : '';
     const mine = rest.filter(r => r.person === person);
     const nprj = row.n_projects;
     const projWord = nprj === 1 ? 'project' : 'projects';

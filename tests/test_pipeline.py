@@ -9,10 +9,14 @@ from cicero_hours.board import board_data, board_html
 from cicero_hours.dashboard import build_dashboard
 from cicero_hours.loader import load_export
 from cicero_hours.model import (
+    ALL_GROUPS,
+    ALL_GROUPS_LABEL,
     EXTERNAL_PROJECT_LABEL,
     INTERNAL_PROJECT_LABEL,
     Assumptions,
+    available_groups,
     build_group,
+    group_label,
 )
 
 from .synthetic import write_export
@@ -116,7 +120,7 @@ def test_project_label_drops_the_job_number(group):
 
 def test_people_without_the_group_tag_are_filtered_out(group):
     assert "Alan Turing" not in group.people
-    assert group.excluded == ("Alan Turing",)
+    assert group.excluded == ("Alan Turing", "Rosalind Franklin")
     assert group.group_tag == "Utslippsreduksjon / Climate Mitigation"
 
 
@@ -205,8 +209,31 @@ def test_people_whose_second_group_this_is_are_kept(group):
 
 def test_the_home_group_sees_her_too(export):
     g = build_group(load_export(export), group_tag="Klimasystemet/Climate System")
-    assert g.people == ["Katherine Johnson"]
+    assert g.people == ["Katherine Johnson", "Rosalind Franklin"]
     assert g.second_groups() == {"Katherine Johnson": "Utslippsreduksjon / Climate Mitigation"}
+
+
+def test_the_export_lists_home_groups_only(export):
+    assert available_groups(load_export(export)) == [
+        "Klimasystemet/Climate System",
+        "Utslippsreduksjon / Climate Mitigation",
+    ]
+
+
+def test_all_groups_keeps_every_tagged_person(export):
+    g = build_group(load_export(export), group_tag=ALL_GROUPS)
+    assert g.people == ["Ada Lovelace", "Grace Hopper", "Katherine Johnson", "Rosalind Franklin"]
+    assert g.excluded == ("Alan Turing",)
+    assert g.second_groups() == {
+        "Grace Hopper": "Atmosfæreforskning / Atmospheric Sciences",
+        "Katherine Johnson": "Utslippsreduksjon / Climate Mitigation",
+    }
+
+
+def test_group_label_takes_the_english_half():
+    assert group_label("Utslippsreduksjon / Climate Mitigation") == "Climate Mitigation"
+    assert group_label("Klimasystemet/Climate System") == "Climate System"
+    assert group_label(ALL_GROUPS) == ALL_GROUPS_LABEL
 
 
 def test_project_team_spans_years(group):

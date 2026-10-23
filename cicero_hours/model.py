@@ -10,6 +10,8 @@ import pandas as pd
 
 from ._rules import (
     ABSENCE_JOBS,
+    ALL_GROUPS,
+    ALL_GROUPS_LABEL,
     BILLABLE_HOURS_DEFAULT,
     CATEGORY_ORDER,
     EXTERNAL_PROJECT_LABEL,
@@ -26,6 +28,8 @@ from .loader import RawExport
 # the values themselves live in spec/rules.json.
 __all__ = [
     "ABSENCE_JOBS",
+    "ALL_GROUPS",
+    "ALL_GROUPS_LABEL",
     "Assumptions",
     "CATEGORY_ORDER",
     "EXTERNAL_PROJECT_LABEL",
@@ -36,7 +40,9 @@ __all__ = [
     "PROJECT_JOB_FLOOR",
     "TYPE_ORDER",
     "UNALLOCATED_PERSON",
+    "available_groups",
     "build_group",
+    "group_label",
     "tidy_budget",
     "tidy_registered",
 ]
@@ -336,7 +342,29 @@ class Group:
 
 
 def _in_group(df: pd.DataFrame, tag: str) -> pd.Series:
+    if tag == ALL_GROUPS:
+        return df["group_tag"].notna() | df["second_group"].notna()
     return (df["group_tag"] == tag).fillna(False) | (df["second_group"] == tag).fillna(False)
+
+
+def available_groups(raw: RawExport) -> list[str]:
+    """The home groups (Specification 5) an export covers, in sorted order.
+
+    Second groups are left out: an export of one group names its members'
+    second groups too, but carries none of those groups' other people.
+    """
+    tags = set(tidy_budget(raw)["group_tag"].dropna())
+    tags |= set(tidy_registered(raw)["group_tag"].dropna())
+    return sorted(tags)
+
+
+def group_label(tag: str | None) -> str | None:
+    """The English half of a group tag, or the all-groups label."""
+    if tag is None:
+        return None
+    if tag == ALL_GROUPS:
+        return ALL_GROUPS_LABEL
+    return tag.split("/")[-1].strip()
 
 
 def build_group(
@@ -354,7 +382,8 @@ def build_group(
     the group belongs to it too: a combined export of several groups carries
     their rows under their home group's tag, and they would otherwise vanish
     from the group they also work in. `exclude` is there for the cases the tag
-    does not catch.
+    does not catch. Passing ALL_GROUPS as the tag keeps everyone tagged to any
+    group.
     """
     assumptions = assumptions or Assumptions()
     budget = tidy_budget(raw)

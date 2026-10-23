@@ -36,7 +36,13 @@ from cicero_hours import figures as F  # noqa: E402
 from cicero_hours._rules import BILLABLE_HOURS_DEFAULT  # noqa: E402
 from cicero_hours.board import board_data  # noqa: E402
 from cicero_hours.loader import load_export  # noqa: E402
-from cicero_hours.model import Assumptions, Group, build_group  # noqa: E402
+from cicero_hours.model import (  # noqa: E402
+    ALL_GROUPS,
+    Assumptions,
+    Group,
+    available_groups,
+    build_group,
+)
 from tests.synthetic import write_export  # noqa: E402
 
 AS_OF = dt.date(2026, 7, 2)
@@ -233,11 +239,19 @@ def compute() -> dict:
     """The one function the emitter and the pin test both call."""
     with tempfile.TemporaryDirectory() as td:
         export = write_export(Path(td) / "synth.csv")
-        g = build_group(
-            load_export(export),
-            Assumptions(as_of=AS_OF, billable_hours=BILLABLE_HOURS_DEFAULT),
-        )
+        raw = load_export(export)
+        assumptions = Assumptions(as_of=AS_OF, billable_hours=BILLABLE_HOURS_DEFAULT)
+        g = build_group(raw, assumptions)
         snapshot = _snapshot_group(g)
+        every = build_group(raw, assumptions, group_tag=ALL_GROUPS)
+        # Who the all-groups view keeps; the rollups are the same code as above.
+        snapshot["all_groups"] = {
+            "available_groups": available_groups(raw),
+            "group_tag": every.group_tag,
+            "excluded": list(every.excluded),
+            "people": list(every.people),
+            "second_groups": dict(sorted(every.second_groups().items())),
+        }
 
     return {
         "as_of": AS_OF.isoformat(),

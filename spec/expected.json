@@ -1,4 +1,24 @@
 {
+  "all_groups": {
+    "available_groups": [
+      "Klimasystemet/Climate System",
+      "Utslippsreduksjon / Climate Mitigation"
+    ],
+    "excluded": [
+      "Alan Turing"
+    ],
+    "group_tag": "all",
+    "people": [
+      "Ada Lovelace",
+      "Grace Hopper",
+      "Katherine Johnson",
+      "Rosalind Franklin"
+    ],
+    "second_groups": {
+      "Grace Hopper": "Atmosfæreforskning / Atmospheric Sciences",
+      "Katherine Johnson": "Utslippsreduksjon / Climate Mitigation"
+    }
+  },
   "as_of": "2026-07-02",
   "billable_hours": 1250.0,
   "board": {
@@ -95,7 +115,7 @@
     },
     "second_groups": {
       "Grace Hopper": "Atmospheric Sciences",
-      "Katherine Johnson": "Klimasystemet/Climate System"
+      "Katherine Johnson": "Climate System"
     },
     "unallocated_person": "Forsker Climate Mitigation",
     "years": [
@@ -203,7 +223,8 @@
     }
   ],
   "excluded": [
-    "Alan Turing"
+    "Alan Turing",
+    "Rosalind Franklin"
   ],
   "figures": {
     "fig_group_capacity": {
@@ -597,7 +618,7 @@
         },
         {
           "label": "Katherine Johnson",
-          "title_text": "<b>Katherine Johnson</b><br><span style=\"font-size:12px;color:#6A7683\">300 h budgeted across 1 project in 2026 · 120 h booked · 0 h absence · 0 h internal · part-time in Klimasystemet/Climate System</span>",
+          "title_text": "<b>Katherine Johnson</b><br><span style=\"font-size:12px;color:#6A7683\">300 h budgeted across 1 project in 2026 · 120 h booked · 0 h absence · 0 h internal · part-time in Climate System</span>",
           "visible": [
             false,
             false,

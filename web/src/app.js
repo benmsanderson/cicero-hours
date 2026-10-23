@@ -10,7 +10,7 @@
 // worker: the file is read from the user's disk, parsed here, and shown.
 
 import { loadExport } from './loader.js';
-import { buildGroup, yearFraction } from './model.js';
+import { availableGroups, buildGroup, groupLabel, yearFraction } from './model.js';
 import { boardData, mountBoard } from './board.js';
 import {
   figGroupCapacity,
@@ -28,6 +28,8 @@ import {
 } from './figures.js';
 import {
   BILLABLE_HOURS_DEFAULT,
+  ALL_GROUPS,
+  ALL_GROUPS_LABEL,
   UNALLOCATED_PERSON,
 } from './rules.js';
 
@@ -37,6 +39,9 @@ const state = {
   raw: null,
   group: null,
   as_of: todayISO(),
+  // undefined means the model's default: the most common group tag.
+  groupTag: undefined,
+  groups: [],
   title: 'Climate Mitigation',
   decodeWarning: '',
 };
@@ -150,14 +155,17 @@ async function handleFile(file) {
     );
   }
 
-  let group;
+  let group, groups;
   try {
+    groups = availableGroups(raw);
     group = buildGroup(raw, { as_of: state.as_of, billable_hours: BILLABLE_HOURS_DEFAULT });
   } catch (err) {
     return backToEmpty(`Could not tidy the export: ${err.message}`);
   }
 
   state.raw = raw;
+  state.groups = groups;
+  state.groupTag = undefined;
   state.group = group;
   state.decodeWarning = warning;
   renderDashboard();
@@ -206,6 +214,7 @@ function decodeBytes(buffer) {
 // survives the user nudging the date.
 function renderDashboard() {
   const g = state.group;
+  state.title = groupLabel(g.group_tag) ?? 'Climate Mitigation';
   const year = g.reporting_year;
   const frac = yearFraction(g.assumptions, year);
 
@@ -223,6 +232,7 @@ function renderDashboard() {
   wireTabs();
   showTab(state.currentTab || TABS[0][0]);
   wireAsOf();
+  wireGroupPicker();
 
   // Now that the panels are in the DOM, hand each one to its renderer.
   mountFigures(g);
@@ -240,6 +250,7 @@ function renderStrip() {
   wrap.querySelector('header').replaceWith(renderHeader(g, year, frac));
   wrap.querySelector('.notes-block').replaceWith(renderNotes(g, year, frac));
   wireAsOf();
+  wireGroupPicker();
 }
 
 function renderHeader(g, year, frac) {
@@ -249,6 +260,16 @@ function renderHeader(g, year, frac) {
   );
   const asOf = el('input', { type: 'date', id: 'as-of', value: state.as_of });
   eye.appendChild(asOf);
+  // Only an export that spans several groups gets a picker.
+  if (state.groups.length > 1) {
+    eye.appendChild(document.createTextNode(' · group '));
+    const pick = el('select', { id: 'group-pick' });
+    for (const tag of [...state.groups, ALL_GROUPS]) {
+      pick.appendChild(el('option', { value: tag, selected: tag === g.group_tag },
+        tag === ALL_GROUPS ? ALL_GROUPS_LABEL : groupLabel(tag)));
+    }
+    eye.appendChild(pick);
+  }
   header.appendChild(eye);
   header.appendChild(el('h1', {}, `${state.title}: hours and allocation`));
   header.appendChild(el('p', { class: 'standfirst' },
@@ -381,7 +402,7 @@ function renderNotes(g, year, frac) {
     ? ' Part of their time sits with another research group: ' +
       Object.entries(seconds)
         .sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0)
-        .map(([p, s]) => `${p} (${s.split(' / ').at(-1)})`)
+        .map(([p, s]) => `${p} (${groupLabel(s)})`)
         .join(', ') + '.'
     : '';
   notes.appendChild(note(
@@ -450,9 +471,23 @@ function wireAsOf() {
     // Reuse the same raw parse; only re-tidy and re-render the strip. The
     // board panel is left as it was, so an in-progress proposal survives.
     state.group = buildGroup(state.raw, {
-      as_of: state.as_of, billable_hours: BILLABLE_HOURS_DEFAULT,
+      as_of: state.as_of, billable_hours: BILLABLE_HOURS_DEFAULT, group_tag: state.groupTag,
     });
     renderStrip();
+  });
+}
+
+// A different group means a different roster, so everything re-renders,
+// the board included; a proposal in progress does not carry across groups.
+function wireGroupPicker() {
+  const pick = document.getElementById('group-pick');
+  if (!pick) return;
+  pick.addEventListener('change', () => {
+    state.groupTag = pick.value;
+    state.group = buildGroup(state.raw, {
+      as_of: state.as_of, billable_hours: BILLABLE_HOURS_DEFAULT, group_tag: state.groupTag,
+    });
+    renderDashboard();
   });
 }
 

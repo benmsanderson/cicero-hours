@@ -8,6 +8,8 @@ export const PROJECT_JOB_FLOOR = raw.project_job_floor;
 export const ABSENCE_JOBS = new Set(raw.absence_jobs);
 export const INTERNAL_JOBS = new Set(raw.internal_jobs);
 export const UNALLOCATED_PERSON = raw.unallocated_person;
+export const ALL_GROUPS = raw.all_groups;
+export const ALL_GROUPS_LABEL = raw.all_groups_label;
 export const CATEGORY_ORDER = raw.category_order.slice();
 
 // Project work funded from CICERO's own strategic pot rather than by a

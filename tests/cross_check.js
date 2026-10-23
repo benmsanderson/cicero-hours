@@ -25,9 +25,9 @@ const AS_OF = '2026-07-02';
   }
 
   const { loadExport } = await import('../web/src/loader.js');
-  const { buildGroup, yearFraction } = await import('../web/src/model.js');
+  const { availableGroups, buildGroup, yearFraction } = await import('../web/src/model.js');
   const { boardData } = await import('../web/src/board.js');
-  const { BILLABLE_HOURS_DEFAULT } = await import('../web/src/rules.js');
+  const { ALL_GROUPS, BILLABLE_HOURS_DEFAULT } = await import('../web/src/rules.js');
   const figures = await import('../web/src/figures.js');
 
   const text = fs.readFileSync(csvPath, 'utf8');
@@ -38,6 +38,16 @@ const AS_OF = '2026-07-02';
   });
 
   const actual = snapshot(group, yearFraction, boardData, figures);
+  const every = buildGroup(raw, {
+    as_of: AS_OF, billable_hours: BILLABLE_HOURS_DEFAULT, group_tag: ALL_GROUPS,
+  });
+  actual.all_groups = {
+    available_groups: availableGroups(raw),
+    group_tag: every.group_tag,
+    excluded: every.excluded,
+    people: every.people,
+    second_groups: every.second_groups(),
+  };
   const expected = JSON.parse(fs.readFileSync(EXPECTED_PATH, 'utf8'));
 
   const diffs = [];

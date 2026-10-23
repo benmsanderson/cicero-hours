@@ -6,6 +6,8 @@
 import { requireTable } from './loader.js';
 import {
   ABSENCE_JOBS,
+  ALL_GROUPS,
+  ALL_GROUPS_LABEL,
   BILLABLE_HOURS_DEFAULT,
   CATEGORY_ORDER,
   EXTERNAL_PROJECT_LABEL,
@@ -237,7 +239,9 @@ export function buildGroup(raw, options = {}) {
   if (tag !== null && tag !== undefined) {
     // Someone whose Specification 6 names the group belongs to it too; a
     // combined export carries their rows under their home group's tag.
-    const inGroup = r => r.group_tag === tag || r.second_group === tag;
+    const inGroup = tag === ALL_GROUPS
+      ? r => r.group_tag !== null || r.second_group !== null
+      : r => r.group_tag === tag || r.second_group === tag;
     budget = budget.filter(inGroup);
     registered = registered.filter(inGroup);
   }
@@ -255,6 +259,24 @@ export function buildGroup(raw, options = {}) {
   const excluded = [...before].filter(p => !after.has(p)).sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
 
   return new Group(budget, registered, assumptions, tag ?? null, excluded);
+}
+
+// The home groups (Specification 5) an export covers, sorted. Second groups
+// are left out: the export names them but carries none of their other people.
+// Mirror of available_groups in model.py.
+export function availableGroups(raw) {
+  const tags = new Set();
+  for (const r of [...tidyBudget(raw), ...tidyRegistered(raw)]) {
+    if (r.group_tag !== null) tags.add(r.group_tag);
+  }
+  return [...tags].sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
+}
+
+// The English half of a group tag, or the all-groups label.
+export function groupLabel(tag) {
+  if (tag === null || tag === undefined) return null;
+  if (tag === ALL_GROUPS) return ALL_GROUPS_LABEL;
+  return tag.split('/').at(-1).trim();
 }
 
 function mode(values) {

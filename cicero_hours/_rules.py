@@ -24,6 +24,8 @@ ABSENCE_JOBS: set[int] = {int(j) for j in _DATA["absence_jobs"]}
 INTERNAL_JOBS: set[int] = {int(j) for j in _DATA["internal_jobs"]}
 
 UNALLOCATED_PERSON: str = str(_DATA["unallocated_person"])
+ALL_GROUPS: str = str(_DATA["all_groups"])
+ALL_GROUPS_LABEL: str = str(_DATA["all_groups_label"])
 CATEGORY_ORDER: list[str] = list(_DATA["category_order"])
 
 # Project work funded from CICERO's own strategic pot rather than by a customer.

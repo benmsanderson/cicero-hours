@@ -13,6 +13,10 @@
 
   "unallocated_person": "Forsker Climate Mitigation",
 
+  "_all_groups_readme": "Passing all_groups as the group tag keeps everyone who carries a group tag in either Specification 5 or 6, for an export that spans several groups. Central staff with no tag are still left out. all_groups_label is what the dashboard calls that view.",
+  "all_groups": "all",
+  "all_groups_label": "All groups",
+
   "category_order": ["Project", "Internal", "Absence", "Other"],
 
   "billable_hours_default": 1250.0,

@@ -17,6 +17,7 @@ from .model import (
     TYPE_ORDER,
     UNALLOCATED_PERSON,
     Group,
+    group_label,
 )
 
 INK = "#12181F"
@@ -757,7 +758,7 @@ def fig_person_deep_dive(group: Group, year: int) -> go.Figure:
     for person in people:
         row = summary.loc[person]
         second = group.second_groups().get(person)
-        tail = f" · part-time in {second.split(' / ')[-1]}" if second else ""
+        tail = f" · part-time in {group_label(second)}" if second else ""
         mine = rest[rest["person"] == person]
         buttons.append(dict(
             label=person, method="update",
