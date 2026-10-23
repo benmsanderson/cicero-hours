@@ -8,7 +8,16 @@ from cicero_hours import figures as F
 from cicero_hours.board import board_data, board_html
 from cicero_hours.dashboard import build_dashboard
 from cicero_hours.loader import load_export
-from cicero_hours.model import Assumptions, build_group
+from cicero_hours.model import (
+    ALL_GROUPS,
+    ALL_GROUPS_LABEL,
+    EXTERNAL_PROJECT_LABEL,
+    INTERNAL_PROJECT_LABEL,
+    Assumptions,
+    available_groups,
+    build_group,
+    group_label,
+)
 
 from .synthetic import write_export
 
@@ -50,14 +59,52 @@ def test_registered_rows_collapse_across_activity_codes(group):
     alpha = group.registered.query("person == 'Ada Lovelace' and project == 'ALPHA'")
     assert len(alpha) == 1, "the two time rows merge; the empty cost row is dropped"
     assert alpha["hours"].sum() == pytest.approx(400.0)
-    assert not (group.registered["hours"] == 0).any()
+    # A row carrying neither hours nor money is dropped. A cost-only row is not:
+    # travel booked to a project has a price and no hours, and the real export is
+    # full of them.
+    empty = (group.registered["hours"] == 0) & (group.registered["value"] == 0)
+    assert not empty.any()
 
 
 def test_time_splits_into_project_internal_and_absence(group):
     by_cat = group.registered.groupby("category")["hours"].sum()
-    assert by_cat["Project"] == pytest.approx(600.0)
+    # 400 h on Alpha plus the 250 h booked to Beta, which is project time however
+    # it is funded.
+    assert by_cat["Project"] == pytest.approx(770.0)
     assert by_cat["Internal"] == pytest.approx(210.0)
     assert by_cat["Absence"] == pytest.approx(210.0)
+
+
+def test_internally_funded_project_time_splits_out(group):
+    by_type = group.registered_by_type(2026)
+    assert by_type.loc["Ada Lovelace", EXTERNAL_PROJECT_LABEL] == pytest.approx(400.0)
+    assert by_type.loc["Ada Lovelace", INTERNAL_PROJECT_LABEL] == pytest.approx(50.0)
+    assert by_type.loc["Grace Hopper", EXTERNAL_PROJECT_LABEL] == pytest.approx(0.0)
+    assert by_type.loc["Grace Hopper", INTERNAL_PROJECT_LABEL] == pytest.approx(200.0)
+
+
+def test_the_split_moves_no_hours_in_or_out_of_project_time(group):
+    by_type = group.registered_by_type(2026)
+    by_cat = group.registered_by_category(2026)
+    assert by_type.sum().sum() == pytest.approx(by_cat.sum().sum())
+    halves = by_type[EXTERNAL_PROJECT_LABEL] + by_type[INTERNAL_PROJECT_LABEL]
+    assert halves.sum() == pytest.approx(by_cat["Project"].sum())
+
+
+def test_funding_belongs_to_the_project_not_the_row(group):
+    """Beta's travel row carries an ordinary activity code, not the marker."""
+    beta = group.registered.query("project == 'BETA'")
+    assert beta["internal_project"].all()
+    travel = beta[beta["task"].str.startswith("30")]
+    assert len(travel) == 1 and travel["hours"].iloc[0] == 0
+    off_project = group.registered["category"] != "Project"
+    assert not group.registered.loc[off_project, "internal_project"].any()
+
+
+def test_composition_stacks_project_time_before_everything_else(group):
+    names = [t.name for t in F.fig_registered_composition(group, 2026).data]
+    assert names[:2] == [EXTERNAL_PROJECT_LABEL, INTERNAL_PROJECT_LABEL]
+    assert names.index("Internal") > names.index(INTERNAL_PROJECT_LABEL)
 
 
 def test_budget_covers_project_accounts_only(group):
@@ -73,13 +120,13 @@ def test_project_label_drops_the_job_number(group):
 
 def test_people_without_the_group_tag_are_filtered_out(group):
     assert "Alan Turing" not in group.people
-    assert group.excluded == ("Alan Turing",)
+    assert group.excluded == ("Alan Turing", "Rosalind Franklin")
     assert group.group_tag == "Utslippsreduksjon / Climate Mitigation"
 
 
 def test_explicit_exclusions_apply_on_top_of_the_tag(export):
     g = build_group(load_export(export), exclude=("Grace Hopper",))
-    assert g.people == ["Ada Lovelace"]
+    assert g.people == ["Ada Lovelace", "Katherine Johnson"]
     assert "Grace Hopper" in g.excluded
 
 
@@ -90,7 +137,7 @@ def test_billable_target_defaults_to_the_billing_standard(group):
 def test_unallocated_is_flagged_and_kept_out_of_the_roster(group):
     assert group.budget["unallocated"].sum() == 1
     assert "Forsker Climate Mitigation" not in group.people
-    assert group.people == ["Ada Lovelace", "Grace Hopper"]
+    assert group.people == ["Ada Lovelace", "Grace Hopper", "Katherine Johnson"]
 
 
 def test_unallocated_excluded_from_person_summary(group):
@@ -149,13 +196,51 @@ def test_reporting_year_is_the_last_year_with_registrations(group):
 
 def test_second_group_tag_is_picked_up(group):
     assert group.second_groups() == {
-        "Grace Hopper": "Atmosfæreforskning / Atmospheric Sciences"
+        "Grace Hopper": "Atmosfæreforskning / Atmospheric Sciences",
+        "Katherine Johnson": "Klimasystemet/Climate System",
     }
+
+
+def test_people_whose_second_group_this_is_are_kept(group):
+    assert "Katherine Johnson" in group.people
+    assert group.registered.query("person == 'Katherine Johnson'")["hours"].sum() == 120
+    assert group.budget.query("person == 'Katherine Johnson'")["hours"].sum() == 300
+
+
+def test_the_home_group_sees_her_too(export):
+    g = build_group(load_export(export), group_tag="Klimasystemet/Climate System")
+    assert g.people == ["Katherine Johnson", "Rosalind Franklin"]
+    assert g.second_groups() == {"Katherine Johnson": "Utslippsreduksjon / Climate Mitigation"}
+
+
+def test_the_export_lists_home_groups_only(export):
+    assert available_groups(load_export(export)) == [
+        "Klimasystemet/Climate System",
+        "Utslippsreduksjon / Climate Mitigation",
+    ]
+
+
+def test_all_groups_keeps_every_tagged_person(export):
+    g = build_group(load_export(export), group_tag=ALL_GROUPS)
+    assert g.people == ["Ada Lovelace", "Grace Hopper", "Katherine Johnson", "Rosalind Franklin"]
+    assert g.excluded == ("Alan Turing",)
+    assert g.second_groups() == {
+        "Grace Hopper": "Atmosfæreforskning / Atmospheric Sciences",
+        "Katherine Johnson": "Utslippsreduksjon / Climate Mitigation",
+    }
+
+
+def test_group_label_takes_the_english_half():
+    assert group_label("Utslippsreduksjon / Climate Mitigation") == "Climate Mitigation"
+    assert group_label("Klimasystemet/Climate System") == "Climate System"
+    assert group_label(ALL_GROUPS) == ALL_GROUPS_LABEL
 
 
 def test_project_team_spans_years(group):
     team = group.project_team("ALPHA")
-    assert set(team["person"]) == {"Ada Lovelace", "Forsker Climate Mitigation"}
+    assert set(team["person"]) == {
+        "Ada Lovelace", "Forsker Climate Mitigation", "Katherine Johnson"
+    }
     assert set(team["year"]) == {2026, 2027}
 
 
@@ -288,6 +373,7 @@ def test_board_makes_every_budgeted_hour_a_block(group):
     blocks = board_data(group)["blocks"]
     assert {(b["project"], b["year"], b["origin"]) for b in blocks} == {
         ("ALPHA", 2026, "Ada Lovelace"),
+        ("ALPHA", 2026, "Katherine Johnson"),
         ("ALPHA", 2027, "Ada Lovelace"),
         ("ALPHA", 2027, None),
         ("BETA", 2026, "Grace Hopper"),
@@ -318,7 +404,7 @@ def test_board_opens_on_the_year_with_most_unassigned_time(group):
 def test_board_annualises_each_persons_own_billing_rate(group):
     rate = board_data(group)["rate"]
     frac = group.assumptions.year_fraction(2026)
-    assert rate["Ada Lovelace"] == pytest.approx(round(400.0 / frac, -1))
+    assert rate["Ada Lovelace"] == pytest.approx(round(450.0 / frac, -1))
     assert "Grace Hopper" in rate
 
 

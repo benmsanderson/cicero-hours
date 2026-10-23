@@ -5,7 +5,7 @@
 // runs its top-level assignment and registers window.__cicero_boardInit.
 
 import { UNALLOCATED_PERSON } from './rules.js';
-import { yearFraction } from './model.js';
+import { groupLabel, yearFraction } from './model.js';
 import { projectColours } from './palette.js';
 
 // Side-effect import: registers window.__cicero_boardInit(DATA).
@@ -97,8 +97,7 @@ export function boardData(group, planFile = 'allocation_plan.txt') {
   const secondsFull = group.second_groups();
   const seconds = {};
   for (const [p, g] of Object.entries(secondsFull)) {
-    const parts = g.split(' / ');
-    seconds[p] = parts[parts.length - 1];
+    seconds[p] = groupLabel(g);
   }
 
   return {

@@ -10,10 +10,16 @@ import pandas as pd
 
 from ._rules import (
     ABSENCE_JOBS,
+    ALL_GROUPS,
+    ALL_GROUPS_LABEL,
     BILLABLE_HOURS_DEFAULT,
     CATEGORY_ORDER,
+    EXTERNAL_PROJECT_LABEL,
     INTERNAL_JOBS,
+    INTERNAL_PROJECT_ACTIVITY,
+    INTERNAL_PROJECT_LABEL,
     PROJECT_JOB_FLOOR,
+    TYPE_ORDER,
     UNALLOCATED_PERSON,
 )
 from .loader import RawExport
@@ -22,13 +28,21 @@ from .loader import RawExport
 # the values themselves live in spec/rules.json.
 __all__ = [
     "ABSENCE_JOBS",
+    "ALL_GROUPS",
+    "ALL_GROUPS_LABEL",
     "Assumptions",
     "CATEGORY_ORDER",
+    "EXTERNAL_PROJECT_LABEL",
     "Group",
     "INTERNAL_JOBS",
+    "INTERNAL_PROJECT_ACTIVITY",
+    "INTERNAL_PROJECT_LABEL",
     "PROJECT_JOB_FLOOR",
+    "TYPE_ORDER",
     "UNALLOCATED_PERSON",
+    "available_groups",
     "build_group",
+    "group_label",
     "tidy_budget",
     "tidy_registered",
 ]
@@ -108,6 +122,21 @@ def tidy_budget(raw: RawExport) -> pd.DataFrame:
     return out.dropna(subset=["year"]).reset_index(drop=True)
 
 
+def _internal_projects(df: pd.DataFrame) -> pd.Series:
+    """Flag rows belonging to a project CICERO funds itself.
+
+    Towards2040 and its like are booked to ordinary project job numbers, so the
+    job number cannot tell them apart from customer work; the finance system
+    marks them with their own activity code instead. Where the money comes from
+    is a property of the project rather than of the row, so a job is internally
+    funded if any of its rows carry the code — otherwise a cost-only row on the
+    same job would land on the other side of the split from the hours.
+    """
+    marked = df.loc[df["activity"] == INTERNAL_PROJECT_ACTIVITY, "project_no"]
+    jobs = set(marked.dropna())
+    return df["project_no"].isin(jobs) & df["category"].eq("Project")
+
+
 def tidy_registered(raw: RawExport) -> pd.DataFrame:
     df = raw.require("registered").copy()
     out = pd.DataFrame(
@@ -122,14 +151,18 @@ def tidy_registered(raw: RawExport) -> pd.DataFrame:
             "activity": pd.to_numeric(df["Activity No."], errors="coerce").astype("Int64"),
             "department": _clean(df["Avdeling"]),
             "group_tag": _clean(df["Employee Specification 5 Descr."]),
+            "second_group": _clean(
+                df.get("Employee Specification 6 Descr.", pd.Series(dtype="object"))
+            ),
         }
     )
     out["project"] = out["project_full"].map(_project_label)
     out["category"] = out["project_no"].map(_category)
+    out["internal_project"] = _internal_projects(out)
     # The registered table carries several rows per key, one per activity code,
     # including pure cost rows with zero hours. Collapse to the analysis key.
     keys = ["person", "project_no", "project", "project_full", "task", "year",
-            "category", "group_tag"]
+            "category", "internal_project", "group_tag", "second_group"]
     out = (
         out.groupby(keys, dropna=False, as_index=False)
         .agg(hours=("hours", "sum"), value=("value", "sum"))
@@ -168,10 +201,19 @@ class Group:
         return sorted(names)
 
     def second_groups(self) -> dict[str, str]:
-        """People tagged to a second research group, and which one."""
-        tagged = self.budget.dropna(subset=["second_group"])
+        """People who split their time with another research group, and which one.
+
+        That is the second group for people whose home group this is, and the
+        home group for people who belong here only as their second.
+        """
+        b = self.budget
+        other = b["second_group"]
+        if self.group_tag is not None:
+            visiting = b["second_group"].eq(self.group_tag).fillna(False)
+            other = other.mask(visiting, b["group_tag"])
+        tagged = b.assign(other=other).dropna(subset=["other"])
         return (
-            tagged.groupby("person")["second_group"]
+            tagged.groupby("person")["other"]
             .agg(lambda s: s.mode().iloc[0])
             .to_dict()
         )
@@ -185,6 +227,28 @@ class Group:
         return (
             df.pivot_table(index="person", columns="category", values="hours", aggfunc="sum")
             .reindex(columns=CATEGORY_ORDER)
+            .fillna(0.0)
+        )
+
+    def registered_by_type(self, year: int | None = None) -> pd.DataFrame:
+        """As registered_by_category, but with project time split by its funding.
+
+        Externally funded work and CICERO's own strategic projects are both
+        project time and both count against the billing standard; they are
+        simply worth telling apart, since only one of them raises an invoice.
+        The other categories are untouched, and the two halves stack in the
+        place the single Project column held.
+        """
+        df = self.registered
+        if year is not None:
+            df = df[df["year"] == year]
+        kind = df["category"].astype(object).mask(
+            df["category"].eq("Project"), EXTERNAL_PROJECT_LABEL
+        ).mask(df["internal_project"], INTERNAL_PROJECT_LABEL)
+        return (
+            df.assign(kind=kind)
+            .pivot_table(index="person", columns="kind", values="hours", aggfunc="sum")
+            .reindex(columns=TYPE_ORDER)
             .fillna(0.0)
         )
 
@@ -277,6 +341,32 @@ class Group:
         return df.groupby(["person", "year"], as_index=False)["hours"].sum().query("hours > 0")
 
 
+def _in_group(df: pd.DataFrame, tag: str) -> pd.Series:
+    if tag == ALL_GROUPS:
+        return df["group_tag"].notna() | df["second_group"].notna()
+    return (df["group_tag"] == tag).fillna(False) | (df["second_group"] == tag).fillna(False)
+
+
+def available_groups(raw: RawExport) -> list[str]:
+    """The home groups (Specification 5) an export covers, in sorted order.
+
+    Second groups are left out: an export of one group names its members'
+    second groups too, but carries none of those groups' other people.
+    """
+    tags = set(tidy_budget(raw)["group_tag"].dropna())
+    tags |= set(tidy_registered(raw)["group_tag"].dropna())
+    return sorted(tags)
+
+
+def group_label(tag: str | None) -> str | None:
+    """The English half of a group tag, or the all-groups label."""
+    if tag is None:
+        return None
+    if tag == ALL_GROUPS:
+        return ALL_GROUPS_LABEL
+    return tag.split("/")[-1].strip()
+
+
 def build_group(
     raw: RawExport,
     assumptions: Assumptions | None = None,
@@ -288,8 +378,12 @@ def build_group(
     The export reaches beyond the group: shared projects pull in colleagues from
     elsewhere, and central staff appear against institute-wide accounts. Rows
     carry a group tag in Specification 5, so that is what decides membership,
-    rather than a hard-coded list of names. `exclude` is there for the cases the
-    tag does not catch.
+    rather than a hard-coded list of names. Someone whose Specification 6 names
+    the group belongs to it too: a combined export of several groups carries
+    their rows under their home group's tag, and they would otherwise vanish
+    from the group they also work in. `exclude` is there for the cases the tag
+    does not catch. Passing ALL_GROUPS as the tag keeps everyone tagged to any
+    group.
     """
     assumptions = assumptions or Assumptions()
     budget = tidy_budget(raw)
@@ -302,8 +396,8 @@ def build_group(
 
     before = set(budget["person"].dropna()) | set(registered["person"].dropna())
     if tag is not None:
-        budget = budget[budget["group_tag"] == tag]
-        registered = registered[registered["group_tag"] == tag]
+        budget = budget[_in_group(budget, tag)]
+        registered = registered[_in_group(registered, tag)]
     if exclude:
         budget = budget[~budget["person"].isin(exclude)]
         registered = registered[~registered["person"].isin(exclude)]

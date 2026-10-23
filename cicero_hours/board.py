@@ -38,7 +38,7 @@ import json
 # in spec/board.css and spec/board.js and are shared with the browser build.
 from ._rules import BOARD_CSS, BOARD_JS  # noqa: F401
 from .figures import project_colours
-from .model import UNALLOCATED_PERSON, Group
+from .model import UNALLOCATED_PERSON, Group, group_label
 
 
 def board_data(group: Group, plan_file: str = "allocation_plan.txt") -> dict:
@@ -116,7 +116,7 @@ def board_data(group: Group, plan_file: str = "allocation_plan.txt") -> dict:
         "people": group.people,
         "baseline": baseline,
         "rate": rate,
-        "second_groups": {p: g.split(" / ")[-1] for p, g in group.second_groups().items()},
+        "second_groups": {p: group_label(g) for p, g in group.second_groups().items()},
         "blocks": blocks,
         "project_years": project_years,
         "project_colour": project_colours(group),

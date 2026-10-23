@@ -91,9 +91,9 @@ function check(name, cond, extra = '') {
   const value = i => kpis[i].querySelector('.value').textContent.trim();
   const label = i => kpis[i].querySelector('.label').textContent.trim();
 
-  check('KPI 0 headcount value',   value(0) === '2');
+  check('KPI 0 headcount value',   value(0) === '3');
   check('KPI 0 headcount label',   /people with hours/.test(label(0)));
-  check('KPI 1 budget total',      value(1) === '1,300');
+  check('KPI 1 budget total',      value(1) === '1,600');
   check('KPI 1 budget label',      /hours budgeted for 2026/.test(label(1)));
   check('KPI 2 over-standard value', value(2) === '0');
   check('KPI 2 over-standard label', /over the 1,250 h standard in 2026/.test(label(2)));
@@ -130,6 +130,25 @@ function check(name, cond, extra = '') {
     /(0|1|2|3|4|5|6|7|8)% of 2026/.test(doc.querySelector('.notes-block').textContent),
     `notes: ${doc.querySelector('.notes-block').textContent.slice(0, 200)}`);
   check('project_share is not moved by the as-of', after === startedAt);
+
+  // ------------------------------------------------------- group picker
+
+  const pick = doc.getElementById('group-pick');
+  check('an export spanning groups gets a picker', !!pick);
+  const options = pick ? Array.from(pick.options).map(o => o.textContent) : [];
+  check('the picker lists each home group and all of them',
+    JSON.stringify(options) === JSON.stringify(['Climate System', 'Climate Mitigation', 'All groups']),
+    `got ${JSON.stringify(options)}`);
+  check('the picker opens on the default group', pick && pick.selectedOptions[0].textContent === 'Climate Mitigation');
+  pick.value = 'all';
+  pick.dispatchEvent(new window.Event('change', { bubbles: true }));
+  await tick();
+  const headcount = doc.querySelectorAll('#kpis .kpi')[0].querySelector('.value').textContent.trim();
+  check('all groups counts everyone tagged to a group', headcount === '4', `got ${headcount}`);
+  check('all groups retitles the dashboard', /^All groups:/.test(doc.querySelector('h1').textContent));
+  check('the picker survives the re-render', doc.getElementById('group-pick')?.value === 'all');
+  check('the as-of survives a group change', doc.getElementById('as-of').value === '2026-01-08');
+  check('the board re-mounts for the new group', doc.querySelectorAll('.panel').length === 6);
 
   // ---------------------------------------------------------- report
 

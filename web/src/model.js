@@ -6,10 +6,16 @@
 import { requireTable } from './loader.js';
 import {
   ABSENCE_JOBS,
+  ALL_GROUPS,
+  ALL_GROUPS_LABEL,
   BILLABLE_HOURS_DEFAULT,
   CATEGORY_ORDER,
+  EXTERNAL_PROJECT_LABEL,
   INTERNAL_JOBS,
+  INTERNAL_PROJECT_ACTIVITY,
+  INTERNAL_PROJECT_LABEL,
   PROJECT_JOB_FLOOR,
+  TYPE_ORDER,
   UNALLOCATED_PERSON,
 } from './rules.js';
 
@@ -144,14 +150,27 @@ export function tidyRegistered(raw) {
       activity: toInt(row['Activity No.']),
       department: cleanStr(row['Avdeling']),
       group_tag: cleanStr(row['Employee Specification 5 Descr.']),
+      second_group: cleanStr(row['Employee Specification 6 Descr.']),
       project: projectFull === null ? 'Unknown' : projectLabel(projectFull),
       category: categoryOf(projectNo),
     });
   }
+  // Where the money comes from is a property of the project rather than of the
+  // row, so a job is internally funded if any of its rows carry the code —
+  // otherwise a cost-only row on the same job would land on the other side of
+  // the split from the hours. Mirror of _internal_projects in model.py.
+  const internalJobs = new Set();
+  for (const r of rows) {
+    if (r.activity === INTERNAL_PROJECT_ACTIVITY && r.project_no !== null) internalJobs.add(r.project_no);
+  }
+  for (const r of rows) {
+    r.internal_project = r.category === 'Project' && internalJobs.has(r.project_no);
+  }
+
   // Collapse activity codes: several rows per key, one per activity, including
   // pure cost rows with zero hours. Group by the analysis key, sum hours and
   // value, drop rows that carry neither hours nor value.
-  const keys = ['person', 'project_no', 'project', 'project_full', 'task', 'year', 'category', 'group_tag'];
+  const keys = ['person', 'project_no', 'project', 'project_full', 'task', 'year', 'category', 'internal_project', 'group_tag', 'second_group'];
   const groups = new Map();
   for (const r of rows) {
     const k = JSON.stringify(keys.map(c => r[c]));
@@ -218,8 +237,13 @@ export function buildGroup(raw, options = {}) {
 
   let budget = budget0, registered = registered0;
   if (tag !== null && tag !== undefined) {
-    budget = budget.filter(r => r.group_tag === tag);
-    registered = registered.filter(r => r.group_tag === tag);
+    // Someone whose Specification 6 names the group belongs to it too; a
+    // combined export carries their rows under their home group's tag.
+    const inGroup = tag === ALL_GROUPS
+      ? r => r.group_tag !== null || r.second_group !== null
+      : r => r.group_tag === tag || r.second_group === tag;
+    budget = budget.filter(inGroup);
+    registered = registered.filter(inGroup);
   }
   if (options.exclude && options.exclude.length) {
     const excl = new Set(options.exclude);
@@ -235,6 +259,24 @@ export function buildGroup(raw, options = {}) {
   const excluded = [...before].filter(p => !after.has(p)).sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
 
   return new Group(budget, registered, assumptions, tag ?? null, excluded);
+}
+
+// The home groups (Specification 5) an export covers, sorted. Second groups
+// are left out: the export names them but carries none of their other people.
+// Mirror of available_groups in model.py.
+export function availableGroups(raw) {
+  const tags = new Set();
+  for (const r of [...tidyBudget(raw), ...tidyRegistered(raw)]) {
+    if (r.group_tag !== null) tags.add(r.group_tag);
+  }
+  return [...tags].sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
+}
+
+// The English half of a group tag, or the all-groups label.
+export function groupLabel(tag) {
+  if (tag === null || tag === undefined) return null;
+  if (tag === ALL_GROUPS) return ALL_GROUPS_LABEL;
+  return tag.split('/').at(-1).trim();
 }
 
 function mode(values) {
@@ -275,12 +317,16 @@ export class Group {
     return [...s].sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
   }
 
+  // The second group for people whose home group this is, and the home group
+  // for people who belong here only as their second.
   second_groups() {
     const bins = new Map();
     for (const r of this.budget) {
-      if (r.second_group === null || r.person === null) continue;
+      const visiting = this.group_tag !== null && r.second_group === this.group_tag;
+      const other = visiting ? r.group_tag : r.second_group;
+      if (other === null || r.person === null) continue;
       const m = bins.get(r.person) || new Map();
-      m.set(r.second_group, (m.get(r.second_group) || 0) + 1);
+      m.set(other, (m.get(other) || 0) + 1);
       bins.set(r.person, m);
     }
     const out = {};
@@ -304,6 +350,26 @@ export class Group {
       cats[r.category] = (cats[r.category] || 0) + r.hours;
     }
     return bins;  // Map<person, {Project, Internal, Absence, Other}>
+  }
+
+  // As registered_by_category, but with project time split by its funding.
+  // Externally funded work and CICERO's own strategic projects are both project
+  // time and both count against the billing standard; they are simply worth
+  // telling apart, since only one of them raises an invoice.
+  registered_by_type(year = null) {
+    const rows = year === null ? this.registered : this.registered.filter(r => r.year === year);
+    const bins = new Map();
+    for (const r of rows) {
+      const p = r.person;
+      if (p === null) continue;
+      let kinds = bins.get(p);
+      if (!kinds) { kinds = zeroTypes(); bins.set(p, kinds); }
+      const kind = r.internal_project
+        ? INTERNAL_PROJECT_LABEL
+        : r.category === 'Project' ? EXTERNAL_PROJECT_LABEL : r.category;
+      kinds[kind] = (kinds[kind] || 0) + r.hours;
+    }
+    return bins;  // Map<person, {External projects, Towards2040, Internal, Absence, Other}>
   }
 
   budget_by_person_project(year, { include_unallocated = true } = {}) {
@@ -450,6 +516,12 @@ export class Group {
 function zeroCategories() {
   const c = {};
   for (const k of CATEGORY_ORDER) c[k] = 0;
+  return c;
+}
+
+function zeroTypes() {
+  const c = {};
+  for (const k of TYPE_ORDER) c[k] = 0;
   return c;
 }
 

@@ -17,7 +17,7 @@ from pathlib import Path
 from ._rules import BILLABLE_HOURS_DEFAULT
 from .dashboard import build_dashboard
 from .loader import load_export
-from .model import Assumptions, build_group
+from .model import ALL_GROUPS, Assumptions, available_groups, build_group, group_label
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -37,13 +37,20 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--exclude", nargs="*", default=[],
                    help="People to leave out beyond those the group tag already filters.")
     p.add_argument("--group-tag", default=None,
-                   help="Specification 5 description identifying the group. "
+                   help="Specification 5 description identifying the group, or "
+                        f"'{ALL_GROUPS}' for everyone in every group the export covers. "
                         "Default: the most common one in the budget table.")
-    p.add_argument("--title", default="Climate Mitigation")
+    p.add_argument("--list-groups", action="store_true",
+                   help="Print the groups the export covers and exit.")
+    p.add_argument("--title", default=None,
+                   help="Dashboard title. Default: the English name of the group.")
     p.add_argument("--summary", action="store_true", help="Also print a text summary.")
     args = p.parse_args(argv)
 
     raw = load_export(args.csv)
+    if args.list_groups:
+        print("\n".join(available_groups(raw)))
+        return 0
     group = build_group(
         raw,
         Assumptions(
@@ -63,7 +70,8 @@ def main(argv: list[str] | None = None) -> int:
               f"({group.assumptions.year_fraction(year):.0%} of working days elapsed)")
         print(group.person_summary(year).round(0).to_string())
 
-    out = build_dashboard(group, args.output, title=args.title)
+    title = args.title or group_label(group.group_tag) or "Climate Mitigation"
+    out = build_dashboard(group, args.output, title=title)
     print(f"Wrote {out} ({out.stat().st_size / 1e6:.1f} MB)")
     return 0
 

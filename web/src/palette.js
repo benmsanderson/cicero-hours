@@ -2,6 +2,8 @@
 // board. Match cicero_hours/figures.py one for one, so the two builds paint
 // the same project the same colour and shade capacity zones identically.
 
+import { EXTERNAL_PROJECT_LABEL, INTERNAL_PROJECT_LABEL } from './rules.js';
+
 export const INK = '#12181F';
 export const MUTED = '#6A7683';
 export const HAIRLINE = '#D3D9DE';
@@ -12,6 +14,16 @@ export const CATEGORY_COLOURS = {
   Internal: '#7E8FA0',
   Absence: '#C6CED6',
   Other: '#E4E8EC',
+};
+
+// Project time split by where the money comes from. The two halves keep the
+// Project hue — they are the same kind of work, and both count against the
+// billing standard — with the internally funded one a tint lighter, far enough
+// from the grey of internal CICERO time to read as a different thing.
+export const TYPE_COLOURS = {
+  ...Object.fromEntries(Object.entries(CATEGORY_COLOURS).filter(([k]) => k !== 'Project')),
+  [EXTERNAL_PROJECT_LABEL]: CATEGORY_COLOURS.Project,
+  [INTERNAL_PROJECT_LABEL]: '#4A8F9C',
 };
 
 export const UNALLOCATED_COLOUR = '#C98F2B';
