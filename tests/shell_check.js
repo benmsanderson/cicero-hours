@@ -91,13 +91,14 @@ function check(name, cond, extra = '') {
   const value = i => kpis[i].querySelector('.value').textContent.trim();
   const label = i => kpis[i].querySelector('.label').textContent.trim();
 
-  check('KPI 0 headcount value',   value(0) === '3');
+  // The fixture spans two groups, so the page opens on all of them.
+  check('KPI 0 headcount value',   value(0) === '4');
   check('KPI 0 headcount label',   /people with hours/.test(label(0)));
-  check('KPI 1 budget total',      value(1) === '1,600');
+  check('KPI 1 budget total',      value(1) === '1,800');
   check('KPI 1 budget label',      /hours budgeted for 2026/.test(label(1)));
   check('KPI 2 over-standard value', value(2) === '0');
   check('KPI 2 over-standard label', /over the 1,250 h standard in 2026/.test(label(2)));
-  check('KPI 4 unallocated share', value(4) === '60%');
+  check('KPI 4 unallocated share', value(4) === '72%');
   check('KPI 4 unallocated label', /of 2027\+ budget unallocated/.test(label(4)));
 
   // ------------------------------------------------------ tabs are wired
@@ -139,16 +140,37 @@ function check(name, cond, extra = '') {
   check('the picker lists each home group and all of them',
     JSON.stringify(options) === JSON.stringify(['Climate System', 'Climate Mitigation', 'All groups']),
     `got ${JSON.stringify(options)}`);
-  check('the picker opens on the default group', pick && pick.selectedOptions[0].textContent === 'Climate Mitigation');
-  pick.value = 'all';
+  check('the picker opens on every group the export carries',
+    pick && pick.selectedOptions[0].textContent === 'All groups',
+    pick ? `got ${pick.selectedOptions[0].textContent}` : 'no picker');
+  check('all groups is the opening headcount', value(0) === '4', `got ${value(0)}`);
+  check('all groups titles the dashboard', /^All groups:/.test(doc.querySelector('h1').textContent));
+
+  // Narrow to one group: the picker's job now that the page opens on all of
+  // them, so this is the direction worth exercising.
+  const mitigation = Array.from(pick.options)
+    .find(o => o.textContent === 'Climate Mitigation');
+  pick.value = mitigation.value;
   pick.dispatchEvent(new window.Event('change', { bubbles: true }));
   await tick();
   const headcount = doc.querySelectorAll('#kpis .kpi')[0].querySelector('.value').textContent.trim();
-  check('all groups counts everyone tagged to a group', headcount === '4', `got ${headcount}`);
-  check('all groups retitles the dashboard', /^All groups:/.test(doc.querySelector('h1').textContent));
-  check('the picker survives the re-render', doc.getElementById('group-pick')?.value === 'all');
+  check('narrowing to one group drops the other group\'s people',
+    headcount === '3', `got ${headcount}`);
+  check('narrowing retitles the dashboard',
+    /^Climate Mitigation:/.test(doc.querySelector('h1').textContent),
+    doc.querySelector('h1').textContent);
+  check('the picker survives the re-render',
+    doc.getElementById('group-pick')?.value === mitigation.value);
   check('the as-of survives a group change', doc.getElementById('as-of').value === '2026-01-08');
   check('the board re-mounts for the new group', doc.querySelectorAll('.panel').length === 6);
+
+  // ...and back to all of them.
+  const back = doc.getElementById('group-pick');
+  back.value = 'all';
+  back.dispatchEvent(new window.Event('change', { bubbles: true }));
+  await tick();
+  check('widening back picks everyone up again',
+    doc.querySelectorAll('#kpis .kpi')[0].querySelector('.value').textContent.trim() === '4');
 
   // ---------------------------------------------------------- report
 
