@@ -226,8 +226,15 @@ export function buildGroup(raw, options = {}) {
 
   let tag = options.group_tag;
   if (tag === undefined) {
+    // An export covering several groups is a deliberate act by whoever
+    // produced it, so showing one of them answers a question nobody asked,
+    // and does it silently: a dashboard of half the roster looks exactly
+    // like a dashboard. Default to all of them and let the picker narrow.
     const tags = budget0.map(r => r.group_tag).filter(t => t !== null);
-    tag = tags.length ? mode(tags) : null;
+    const distinct = [...new Set(tags)];
+    if (distinct.length > 1) tag = ALL_GROUPS;
+    else if (distinct.length === 1) tag = distinct[0];
+    else tag = null;
   }
 
   const before = new Set([

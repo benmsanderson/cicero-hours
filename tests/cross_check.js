@@ -32,9 +32,15 @@ const AS_OF = '2026-07-02';
 
   const text = fs.readFileSync(csvPath, 'utf8');
   const raw = loadExport(text);
+  // Named rather than left to the default, for the same reason the Python
+  // emitter names it: the fixture spans two groups, so the default is the
+  // all-groups view, and taking it here would leave the single-group view
+  // uncovered on both sides at once.
+  const SINGLE_GROUP = 'Utslippsreduksjon / Climate Mitigation';
   const group = buildGroup(raw, {
     as_of: AS_OF,
     billable_hours: BILLABLE_HOURS_DEFAULT,
+    group_tag: SINGLE_GROUP,
   });
 
   const actual = snapshot(group, yearFraction, boardData, figures);

@@ -30,10 +30,35 @@ def export(tmp_path):
 
 @pytest.fixture
 def group(export):
+    """One group, named rather than left to the default.
+
+    The fixture export spans two, so the default is the all-groups view; most
+    of these tests are about what a single-group view does, so they say which.
+    """
     return build_group(
         load_export(export),
         Assumptions(as_of=dt.date(2026, 7, 2), billable_hours=1250.0),
+        group_tag="Utslippsreduksjon / Climate Mitigation",
     )
+
+
+@pytest.fixture
+def every_group(export):
+    return build_group(
+        load_export(export),
+        Assumptions(as_of=dt.date(2026, 7, 2), billable_hours=1250.0),
+        group_tag=ALL_GROUPS,
+    )
+
+
+@pytest.fixture
+def single_group_export(tmp_path):
+    """The same export with the second group's rows taken out."""
+    full = write_export(tmp_path / "full.csv").read_text(encoding="utf-8")
+    kept = [ln for ln in full.splitlines() if "Klimasystemet" not in ln]
+    path = tmp_path / "one_group.csv"
+    path.write_text("\r\n".join(kept) + "\r\n", encoding="utf-8")
+    return path
 
 
 # ------------------------------------------------------------------- loading
@@ -154,6 +179,26 @@ def test_people_without_the_group_tag_are_filtered_out(group):
     assert group.group_tag == "Utslippsreduksjon / Climate Mitigation"
 
 
+def test_an_export_spanning_groups_opens_on_all_of_them(export):
+    """The default has to be every group the export carries.
+
+    Showing one of them answers a question nobody asked, and does it silently:
+    a dashboard of half the roster looks exactly like a dashboard, with the
+    rest of the people reachable only by finding the picker.
+    """
+    g = build_group(load_export(export))
+    assert g.group_tag == ALL_GROUPS
+    assert g.people == [
+        "Ada Lovelace", "Grace Hopper", "Katherine Johnson", "Rosalind Franklin",
+    ]
+
+
+def test_an_export_with_one_group_opens_on_that_group(single_group_export):
+    g = build_group(load_export(single_group_export))
+    assert g.group_tag == "Utslippsreduksjon / Climate Mitigation"
+    assert "Rosalind Franklin" not in g.people
+
+
 def test_every_groups_pseudo_employee_is_unallocated(export):
     """The decisive multi-group case: one pseudo-employee per group.
 
@@ -188,7 +233,11 @@ def test_is_unallocated_matches_the_prefix_only(person, expected):
 
 
 def test_explicit_exclusions_apply_on_top_of_the_tag(export):
-    g = build_group(load_export(export), exclude=("Grace Hopper",))
+    g = build_group(
+        load_export(export),
+        group_tag="Utslippsreduksjon / Climate Mitigation",
+        exclude=("Grace Hopper",),
+    )
     assert g.people == ["Ada Lovelace", "Katherine Johnson"]
     assert "Grace Hopper" in g.excluded
 

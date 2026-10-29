@@ -106,7 +106,7 @@ handle accordingly.
 |---|---|---|
 | `--as-of` | today | Date the registered hours run to. Sets the straight-line "on plan" marks. |
 | `--billable-hours` | 1250 | Billable project hours expected from a full-time researcher in a year. |
-| `--group-tag` | most common in the export | Specification 5 description identifying the group, or `all` for every group in it. |
+| `--group-tag` | every group in the export | Specification 5 description identifying one group, or `all` for every group in it. An export carrying one group opens on that group. |
 | `--exclude` | none | Extra people to leave out, beyond those the group tag already filters. |
 | `--holidays` | none | Weekday public holidays (`YYYY-MM-DD ...`) excluded when pro-rating the year. |
 | `--title` | Climate Mitigation | Group name in the page header. |
@@ -234,11 +234,15 @@ build's page is the data.
   Membership is decided by the group tag in Specification 5 rather than a list of
   names, so joiners and leavers need no code change; `--exclude` covers whatever
   the tag misses.
-* **An export can span several groups**, and `--group-tag all` shows them
-  together. In that view each card names its person's own group and the cards
-  sort into group blocks, so the teams do not interleave, and a block moved
-  between groups is marked: that one needs two budget holders to agree, not just
-  spare capacity. A view of one group stays a view of one group, even though a
+* **An export can span several groups, and opens showing all of them.**
+  Producing a combined export is a deliberate act, so opening on one of them
+  answers a question nobody asked, and does it silently: a dashboard of half the
+  roster looks exactly like a dashboard. The picker narrows to one group; an
+  export carrying one group opens on that group and gets no picker. In the
+  combined view each card names its person's own group and the cards sort into
+  group blocks, so the teams do not interleave, and a block moved between groups
+  is marked: that one needs two budget holders to agree, not just spare
+  capacity. A view of one group stays a view of one group, even though a
   visitor from another carries her home tag on every row; her own group is named
   as her second rather than as a column of the view.
 * The 1250 h billing standard is project time expected from a full-time

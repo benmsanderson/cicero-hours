@@ -235,13 +235,22 @@ def _snapshot_group(g: Group) -> dict:
     }
 
 
+# The fixture's larger group, named so the pinned rollups stay a single-group
+# view whatever the default becomes.
+SINGLE_GROUP = "Utslippsreduksjon / Climate Mitigation"
+
+
 def compute() -> dict:
     """The one function the emitter and the pin test both call."""
     with tempfile.TemporaryDirectory() as td:
         export = write_export(Path(td) / "synth.csv")
         raw = load_export(export)
         assumptions = Assumptions(as_of=AS_OF, billable_hours=BILLABLE_HOURS_DEFAULT)
-        g = build_group(raw, assumptions)
+        # The rollups are pinned on one group, named rather than left to the
+        # default: the fixture spans two, so the default is now the all-groups
+        # view, and taking it here would pin the same view twice and leave the
+        # single-group one uncovered.
+        g = build_group(raw, assumptions, group_tag=SINGLE_GROUP)
         snapshot = _snapshot_group(g)
         every = build_group(raw, assumptions, group_tag=ALL_GROUPS)
         # Who the all-groups view keeps; the rollups are the same code as above.

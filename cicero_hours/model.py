@@ -433,8 +433,18 @@ def build_group(
 
     tag = group_tag
     if tag is None:
+        # An export covering several groups is a deliberate act by whoever
+        # produced it, so showing one of them answers a question nobody asked,
+        # and does it silently: a dashboard of half the roster looks exactly
+        # like a dashboard. Default to all of them and let the picker narrow.
         tags = budget["group_tag"].dropna()
-        tag = tags.mode().iloc[0] if len(tags) else None
+        distinct = tags.unique()
+        if len(distinct) > 1:
+            tag = ALL_GROUPS
+        elif len(distinct) == 1:
+            tag = str(distinct[0])
+        else:
+            tag = None
 
     before = set(budget["person"].dropna()) | set(registered["person"].dropna())
     if tag is not None:
