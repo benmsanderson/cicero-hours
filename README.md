@@ -106,7 +106,7 @@ handle accordingly.
 |---|---|---|
 | `--as-of` | today | Date the registered hours run to. Sets the straight-line "on plan" marks. |
 | `--billable-hours` | 1250 | Billable project hours expected from a full-time researcher in a year. |
-| `--group-tag` | most common in the export | Specification 5 description identifying the group. |
+| `--group-tag` | most common in the export | Specification 5 description identifying the group, or `all` for every group in it. |
 | `--exclude` | none | Extra people to leave out, beyond those the group tag already filters. |
 | `--holidays` | none | Weekday public holidays (`YYYY-MM-DD ...`) excluded when pro-rating the year. |
 | `--title` | Climate Mitigation | Group name in the page header. |
@@ -223,13 +223,24 @@ build's page is the data.
   project time and both count against the billing standard; only one of them ends
   in an invoice. The code and the label are in `spec/rules.json`, so a rename of
   the programme is one line, read by both builds.
-* `Forsker Climate Mitigation` is not a colleague. It carries hours budgeted to
-  the group with no name against them yet, and is drawn hatched throughout.
+* **`Forsker <group>` is not a colleague.** It carries hours budgeted to that
+  group with no name against them yet, and is drawn hatched throughout. There is
+  one per group, so an export spanning several carries several, which is why it
+  is matched on the `Forsker ` prefix rather than by name: matching a single name
+  leaves the other group's looking like a researcher with a large budget and
+  nothing booked against it.
 * The export reaches beyond the group. Shared projects pull in colleagues from
   other groups, and central staff appear against institute-wide accounts.
   Membership is decided by the group tag in Specification 5 rather than a list of
   names, so joiners and leavers need no code change; `--exclude` covers whatever
   the tag misses.
+* **An export can span several groups**, and `--group-tag all` shows them
+  together. In that view each card names its person's own group and the cards
+  sort into group blocks, so the teams do not interleave, and a block moved
+  between groups is marked: that one needs two budget holders to agree, not just
+  spare capacity. A view of one group stays a view of one group, even though a
+  visitor from another carries her home tag on every row; her own group is named
+  as her second rather than as a column of the view.
 * The 1250 h billing standard is project time expected from a full-time
   researcher, not contracted hours. The rest of the working year is internal time
   and absence, which is why every capacity rule applies to project hours only.
@@ -283,6 +294,7 @@ The rest is browser code, so it is tested in a DOM rather than by pytest:
 ```bash
 npm install
 npm run test:board       # the board, in the Python-rendered dashboard
+npm run test:board:groups # the same, on a board spanning several groups
 npm run test:board:web   # the same assertions, in the browser build
 npm run test:cross       # the JS loader and model against spec/expected.json
 npm run test:shell       # the browser build end to end, from file drop to figures
