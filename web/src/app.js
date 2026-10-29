@@ -30,7 +30,6 @@ import {
   BILLABLE_HOURS_DEFAULT,
   ALL_GROUPS,
   ALL_GROUPS_LABEL,
-  UNALLOCATED_PERSON,
 } from './rules.js';
 
 // -------------------------------------------------------------- state
@@ -391,9 +390,10 @@ function renderNotes(g, year, frac) {
 
   const unalloc = note(
     boldLead('Unallocated time.'),
-    ' The export books unassigned group hours to a pseudo-employee, ',
-    el('i', {}, UNALLOCATED_PERSON),
-    ". Those hours are drawn hatched throughout and are never counted as a person's workload.",
+    ' The export books unassigned group hours to a pseudo-employee per group, named ',
+    el('i', {}, '"Forsker"'),
+    " plus the group name. Those hours are drawn hatched throughout and are never counted as a"
+    + " person's workload, in a combined export as much as a single-group one.",
   );
   notes.appendChild(unalloc);
 

@@ -7,7 +7,16 @@ import raw from '../../spec/rules.json' with { type: 'json' };
 export const PROJECT_JOB_FLOOR = raw.project_job_floor;
 export const ABSENCE_JOBS = new Set(raw.absence_jobs);
 export const INTERNAL_JOBS = new Set(raw.internal_jobs);
-export const UNALLOCATED_PERSON = raw.unallocated_person;
+// One pseudo-employee per group, named 'Forsker' plus the group name, so this
+// is a prefix rather than a literal; see spec/rules.json.
+export const UNALLOCATED_PREFIX = raw.unallocated_prefix;
+export const UNALLOCATED_LABEL = raw.unallocated_label;
+
+// There is one per group and a combined export carries several, so matching the
+// prefix is what stops the second group's pseudo-employee being read as a
+// colleague with a workload.
+export const isUnallocated = person =>
+  typeof person === 'string' && person.startsWith(UNALLOCATED_PREFIX);
 export const ALL_GROUPS = raw.all_groups;
 export const ALL_GROUPS_LABEL = raw.all_groups_label;
 export const CATEGORY_ORDER = raw.category_order.slice();

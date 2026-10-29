@@ -17,6 +17,7 @@ from cicero_hours.model import (
     available_groups,
     build_group,
     group_label,
+    is_unallocated,
 )
 
 from .synthetic import write_export
@@ -122,6 +123,39 @@ def test_people_without_the_group_tag_are_filtered_out(group):
     assert "Alan Turing" not in group.people
     assert group.excluded == ("Alan Turing", "Rosalind Franklin")
     assert group.group_tag == "Utslippsreduksjon / Climate Mitigation"
+
+
+def test_every_groups_pseudo_employee_is_unallocated(export):
+    """The decisive multi-group case: one pseudo-employee per group.
+
+    Matching a single literal name leaves the other group's pseudo-employee
+    looking like a colleague with a large budget and nothing booked against it.
+    """
+    g = build_group(load_export(export), group_tag=ALL_GROUPS)
+    assert sorted(g.budget.loc[g.budget["unallocated"], "person"].unique()) == [
+        "Forsker Climate Mitigation",
+        "Forsker Climate System",
+    ]
+    assert g.people == [
+        "Ada Lovelace", "Grace Hopper", "Katherine Johnson", "Rosalind Franklin",
+    ]
+    assert not any(is_unallocated(p) for p in g.person_summary(2027).index)
+
+
+@pytest.mark.parametrize(
+    "person, expected",
+    [
+        ("Forsker Climate Mitigation", True),
+        ("Forsker Climate System", True),
+        ("Forsker ", True),
+        ("Ada Lovelace", False),
+        ("", False),
+        (None, False),
+        (float("nan"), False),
+    ],
+)
+def test_is_unallocated_matches_the_prefix_only(person, expected):
+    assert is_unallocated(person) is expected
 
 
 def test_explicit_exclusions_apply_on_top_of_the_tag(export):

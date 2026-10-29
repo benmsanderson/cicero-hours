@@ -4,7 +4,7 @@
 // spec/board.js, shared verbatim with the Python build; importing it here
 // runs its top-level assignment and registers window.__cicero_boardInit.
 
-import { UNALLOCATED_PERSON } from './rules.js';
+import { UNALLOCATED_LABEL } from './rules.js';
 import { groupLabel, yearFraction } from './model.js';
 import { projectColours } from './palette.js';
 
@@ -111,7 +111,7 @@ export function boardData(group, planFile = 'allocation_plan.txt') {
     project_years: projectYears,
     project_colour: projectColours(group),
     billable_hours: group.assumptions.billable_hours,
-    unallocated_person: UNALLOCATED_PERSON,
+    unallocated_label: UNALLOCATED_LABEL,
     fingerprint,
     plan_file: planFile,
   };

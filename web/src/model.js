@@ -16,7 +16,7 @@ import {
   INTERNAL_PROJECT_LABEL,
   PROJECT_JOB_FLOOR,
   TYPE_ORDER,
-  UNALLOCATED_PERSON,
+  isUnallocated,
 } from './rules.js';
 
 // ---------------------------------------------------------------- assumptions
@@ -125,7 +125,7 @@ export function tidyBudget(raw) {
       second_group: cleanStr(row['Specification6Description']),
       project: projectFull === null ? 'Unknown' : projectLabel(projectFull),
       category: categoryOf(projectNo),
-      unallocated: person === UNALLOCATED_PERSON,
+      unallocated: isUnallocated(person),
     });
   }
   return out;
@@ -256,7 +256,12 @@ export function buildGroup(raw, options = {}) {
     ...registered.map(r => r.person),
   ].filter(p => p !== null));
 
-  const excluded = [...before].filter(p => !after.has(p)).sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
+  // Colleagues the filter dropped, which is worth reporting. Another group's
+  // pseudo-employee going with them is bookkeeping, not a person, so it would
+  // only be noise in that line.
+  const excluded = [...before]
+    .filter(p => !after.has(p) && !isUnallocated(p))
+    .sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
 
   return new Group(budget, registered, assumptions, tag ?? null, excluded);
 }
@@ -314,7 +319,8 @@ export class Group {
     const s = new Set();
     for (const r of this.budget) if (!r.unallocated && r.person !== null) s.add(r.person);
     for (const r of this.registered) if (r.person !== null) s.add(r.person);
-    return [...s].sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
+    return [...s].filter(n => !isUnallocated(n))
+      .sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
   }
 
   // The second group for people whose home group this is, and the home group
@@ -401,7 +407,7 @@ export class Group {
   person_summary(year) {
     // The index is the union of two sets: people with any budget in this year
     // (Project category), and people with any registered hours in this year
-    // (any category). UNALLOCATED_PERSON is dropped at the end.
+    // (any category). Every group's pseudo-employee is dropped at the end.
     const projectBudget = new Map();
     for (const r of this.budget) {
       if (r.year !== year || r.category !== 'Project' || r.person === null) continue;
@@ -409,7 +415,7 @@ export class Group {
     }
     const cats = this.registered_by_category(year);
     const names = new Set([...projectBudget.keys(), ...cats.keys()]);
-    names.delete(UNALLOCATED_PERSON);
+    for (const n of [...names]) if (isUnallocated(n)) names.delete(n);
 
     const nProjects = new Map();
     for (const r of this.budget) {

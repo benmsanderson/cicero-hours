@@ -117,7 +117,7 @@
       "Grace Hopper": "Atmospheric Sciences",
       "Katherine Johnson": "Climate System"
     },
-    "unallocated_person": "Forsker Climate Mitigation",
+    "unallocated_label": "Unallocated",
     "years": [
       2026,
       2027,
@@ -330,7 +330,7 @@
         {
           "height": 288,
           "label": "2026",
-          "title_text": "<b>Hours budgeted per person, 2026</b><br><span style=\"font-size:12px;color:#6A7683\">Largest 6 projects each, labelled where they fit; the rest pooled in grey. 'Forsker Climate Mitigation' is unassigned group time.</span>",
+          "title_text": "<b>Hours budgeted per person, 2026</b><br><span style=\"font-size:12px;color:#6A7683\">Largest 6 projects each, labelled where they fit; the rest pooled in grey. Hatched bars are unassigned group time, not a colleague's workload.</span>",
           "visible": [
             true,
             true,
@@ -345,7 +345,7 @@
         {
           "height": 280,
           "label": "2027",
-          "title_text": "<b>Hours budgeted per person, 2027</b><br><span style=\"font-size:12px;color:#6A7683\">Largest 6 projects each, labelled where they fit; the rest pooled in grey. 'Forsker Climate Mitigation' is unassigned group time.</span>",
+          "title_text": "<b>Hours budgeted per person, 2027</b><br><span style=\"font-size:12px;color:#6A7683\">Largest 6 projects each, labelled where they fit; the rest pooled in grey. Hatched bars are unassigned group time, not a colleague's workload.</span>",
           "visible": [
             false,
             false,
