@@ -4,7 +4,7 @@
 // spec/board.js, shared verbatim with the Python build; importing it here
 // runs its top-level assignment and registers window.__cicero_boardInit.
 
-import { UNALLOCATED_PERSON } from './rules.js';
+import { UNALLOCATED_LABEL } from './rules.js';
 import { groupLabel, yearFraction } from './model.js';
 import { projectColours } from './palette.js';
 
@@ -100,6 +100,11 @@ export function boardData(group, planFile = 'allocation_plan.txt') {
     seconds[p] = groupLabel(g);
   }
 
+  const homes = {};
+  for (const [p, g] of Object.entries(group.home_groups())) {
+    homes[p] = groupLabel(g);
+  }
+
   return {
     years: group.years.map(y => Number(y)),
     default_year: Number(defaultYear),
@@ -107,11 +112,17 @@ export function boardData(group, planFile = 'allocation_plan.txt') {
     baseline,
     rate,
     second_groups: seconds,
+    // Which group each person is in, and the groups on screen. Both are only
+    // used when there is more than one: moving hours between groups is a
+    // different proposition from moving them inside one, since two budget
+    // holders have to agree, and a board that does not say so hides it.
+    home_groups: homes,
+    groups: group.group_tags_present.map(groupLabel),
     blocks,
     project_years: projectYears,
     project_colour: projectColours(group),
     billable_hours: group.assumptions.billable_hours,
-    unallocated_person: UNALLOCATED_PERSON,
+    unallocated_label: UNALLOCATED_LABEL,
     fingerprint,
     plan_file: planFile,
   };

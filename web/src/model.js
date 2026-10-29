@@ -16,7 +16,7 @@ import {
   INTERNAL_PROJECT_LABEL,
   PROJECT_JOB_FLOOR,
   TYPE_ORDER,
-  UNALLOCATED_PERSON,
+  isUnallocated,
 } from './rules.js';
 
 // ---------------------------------------------------------------- assumptions
@@ -125,7 +125,7 @@ export function tidyBudget(raw) {
       second_group: cleanStr(row['Specification6Description']),
       project: projectFull === null ? 'Unknown' : projectLabel(projectFull),
       category: categoryOf(projectNo),
-      unallocated: person === UNALLOCATED_PERSON,
+      unallocated: isUnallocated(person),
     });
   }
   return out;
@@ -256,7 +256,12 @@ export function buildGroup(raw, options = {}) {
     ...registered.map(r => r.person),
   ].filter(p => p !== null));
 
-  const excluded = [...before].filter(p => !after.has(p)).sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
+  // Colleagues the filter dropped, which is worth reporting. Another group's
+  // pseudo-employee going with them is bookkeeping, not a person, so it would
+  // only be noise in that line.
+  const excluded = [...before]
+    .filter(p => !after.has(p) && !isUnallocated(p))
+    .sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
 
   return new Group(budget, registered, assumptions, tag ?? null, excluded);
 }
@@ -314,7 +319,8 @@ export class Group {
     const s = new Set();
     for (const r of this.budget) if (!r.unallocated && r.person !== null) s.add(r.person);
     for (const r of this.registered) if (r.person !== null) s.add(r.person);
-    return [...s].sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
+    return [...s].filter(n => !isUnallocated(n))
+      .sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
   }
 
   // The second group for people whose home group this is, and the home group
@@ -332,6 +338,42 @@ export class Group {
     const out = {};
     for (const [p, m] of bins) {
       out[p] = [...m.entries()].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))[0][0];
+    }
+    return out;
+  }
+
+  // The groups this view spans, heaviest budget first. A view of one group
+  // spans one group, even though a visitor from another carries her home tag
+  // on every row: she is shown as working here, and her own group is named as
+  // her second rather than as a column of the view.
+  get group_tags_present() {
+    if (this.group_tag !== null && this.group_tag !== ALL_GROUPS) return [this.group_tag];
+    const totals = new Map();
+    for (const r of this.budget) {
+      if (r.group_tag === null) continue;
+      totals.set(r.group_tag, (totals.get(r.group_tag) || 0) + r.hours);
+    }
+    return [...totals.entries()]
+      .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
+      .map(([t]) => t);
+  }
+
+  // Each person's own group, by their Specification 5 tag. Only worth showing
+  // when the view spans several groups: with one group on screen it is the
+  // same answer for everybody. The pseudo-employees are left out, being
+  // bookkeeping rather than people.
+  home_groups() {
+    const bins = new Map();
+    for (const r of this.budget) {
+      if (r.group_tag === null || r.person === null || isUnallocated(r.person)) continue;
+      const m = bins.get(r.person) || new Map();
+      m.set(r.group_tag, (m.get(r.group_tag) || 0) + 1);
+      bins.set(r.person, m);
+    }
+    const out = {};
+    for (const [p, m] of bins) {
+      out[p] = [...m.entries()]
+        .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))[0][0];
     }
     return out;
   }
@@ -401,7 +443,7 @@ export class Group {
   person_summary(year) {
     // The index is the union of two sets: people with any budget in this year
     // (Project category), and people with any registered hours in this year
-    // (any category). UNALLOCATED_PERSON is dropped at the end.
+    // (any category). Every group's pseudo-employee is dropped at the end.
     const projectBudget = new Map();
     for (const r of this.budget) {
       if (r.year !== year || r.category !== 'Project' || r.person === null) continue;
@@ -409,7 +451,7 @@ export class Group {
     }
     const cats = this.registered_by_category(year);
     const names = new Set([...projectBudget.keys(), ...cats.keys()]);
-    names.delete(UNALLOCATED_PERSON);
+    for (const n of [...names]) if (isUnallocated(n)) names.delete(n);
 
     const nProjects = new Map();
     for (const r of this.budget) {

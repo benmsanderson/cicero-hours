@@ -3,9 +3,9 @@
 The real export is personal data and never enters the repository, so the tests
 build their own file: three concatenated tables, quoted fields, CRLF endings,
 a leading block with no usable key, and the quirks that matter (cost-only rows
-with zero hours, repeated activity codes, a project CICERO funds itself, the
-unallocated pseudo-employee, a colleague from outside the group whose rows
-carry no group tag, one from another group who works in this one as her
+with zero hours, repeated activity codes, a project CICERO funds itself, an
+unallocated pseudo-employee per group, a colleague from outside the group whose
+rows carry no group tag, one from another group who works in this one as her
 second, and one who belongs to that other group alone).
 """
 
@@ -107,6 +107,13 @@ BUDGET = [
     '"RESEARCH 1","ABC","Ada Lovelace","Forsker Climate Mitigation","31001 - ALPHA",'
     '"10 - Tid","10","1000","31001","Alpha project","2027","G04",'
     '"Utslippsreduksjon / Climate Mitigation","","","600","600","930000"',
+    # The other group has unassigned hours of its own, under a pseudo-employee
+    # of its own. A fixture with only one of these lets a single-group
+    # assumption pass every test, which is how the second one came to be
+    # counted as a colleague with a workload.
+    '"RESEARCH 2","ABC","Ada Lovelace","Forsker Climate System","31001 - ALPHA",'
+    '"10 - Tid","10","1000","31001","Alpha project","2027","G01",'
+    '"Klimasystemet/Climate System","","","450","450","697500"',
     # A zero-hour budget row, which should not appear as an allocation.
     '"RESEARCH 1","DEF","Grace Hopper","Grace Hopper","31002 - BETA","10 - Tid","10","1013",'
     '"31002","#Towards2040 Beta project","2028","G04",'

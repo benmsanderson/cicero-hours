@@ -8,6 +8,16 @@
       "Alan Turing"
     ],
     "group_tag": "all",
+    "groups_present": [
+      "Utslippsreduksjon / Climate Mitigation",
+      "Klimasystemet/Climate System"
+    ],
+    "home_groups": {
+      "Ada Lovelace": "Utslippsreduksjon / Climate Mitigation",
+      "Grace Hopper": "Utslippsreduksjon / Climate Mitigation",
+      "Katherine Johnson": "Klimasystemet/Climate System",
+      "Rosalind Franklin": "Klimasystemet/Climate System"
+    },
     "people": [
       "Ada Lovelace",
       "Grace Hopper",
@@ -17,7 +27,11 @@
     "second_groups": {
       "Grace Hopper": "Atmosfæreforskning / Atmospheric Sciences",
       "Katherine Johnson": "Utslippsreduksjon / Climate Mitigation"
-    }
+    },
+    "unallocated": [
+      "Forsker Climate Mitigation",
+      "Forsker Climate System"
+    ]
   },
   "as_of": "2026-07-02",
   "billable_hours": 1250.0,
@@ -89,6 +103,14 @@
     ],
     "default_year": 2027,
     "fingerprint": "5 blocks / 2,600 h",
+    "groups": [
+      "Climate Mitigation"
+    ],
+    "home_groups": {
+      "Ada Lovelace": "Climate Mitigation",
+      "Grace Hopper": "Climate Mitigation",
+      "Katherine Johnson": "Climate System"
+    },
     "people": [
       "Ada Lovelace",
       "Grace Hopper",
@@ -117,7 +139,7 @@
       "Grace Hopper": "Atmospheric Sciences",
       "Katherine Johnson": "Climate System"
     },
-    "unallocated_person": "Forsker Climate Mitigation",
+    "unallocated_label": "Unallocated",
     "years": [
       2026,
       2027,
@@ -330,7 +352,7 @@
         {
           "height": 288,
           "label": "2026",
-          "title_text": "<b>Hours budgeted per person, 2026</b><br><span style=\"font-size:12px;color:#6A7683\">Largest 6 projects each, labelled where they fit; the rest pooled in grey. 'Forsker Climate Mitigation' is unassigned group time.</span>",
+          "title_text": "<b>Hours budgeted per person, 2026</b><br><span style=\"font-size:12px;color:#6A7683\">Largest 6 projects each, labelled where they fit; the rest pooled in grey. Hatched bars are unassigned group time, not a colleague's workload.</span>",
           "visible": [
             true,
             true,
@@ -345,7 +367,7 @@
         {
           "height": 280,
           "label": "2027",
-          "title_text": "<b>Hours budgeted per person, 2027</b><br><span style=\"font-size:12px;color:#6A7683\">Largest 6 projects each, labelled where they fit; the rest pooled in grey. 'Forsker Climate Mitigation' is unassigned group time.</span>",
+          "title_text": "<b>Hours budgeted per person, 2027</b><br><span style=\"font-size:12px;color:#6A7683\">Largest 6 projects each, labelled where they fit; the rest pooled in grey. Hatched bars are unassigned group time, not a colleague's workload.</span>",
           "visible": [
             false,
             false,

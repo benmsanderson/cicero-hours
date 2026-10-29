@@ -8,12 +8,23 @@
 
 import { TABLE_SIGNATURES } from './rules.js';
 
-// {tables: {name: {columns, rows}}, unrecognised: [{columns, rows}]}
+// {tables: {name: {columns, rows}}, unrecognised: [{columns, rows}],
+//  failed: [{header, reason}]}
 export function loadExport(text) {
   const tables = {};
   const unrecognised = [];
+  // Blocks that looked like a table but would not parse. One malformed row
+  // takes its whole table with it, so without the reason the only symptom is
+  // a table that is simply missing.
+  const failed = [];
   for (const block of splitBlocks(stripBom(text))) {
-    const parsed = parseBlock(block);
+    let parsed;
+    try {
+      parsed = parseBlock(block);
+    } catch (err) {
+      failed.push({ header: block[0], reason: err.message });
+      continue;
+    }
     if (!parsed) continue;
     const cols = new Set(parsed.columns);
     let matched = null;
@@ -26,14 +37,17 @@ export function loadExport(text) {
     if (matched) tables[matched] = parsed;
     else unrecognised.push(parsed);
   }
-  return { tables, unrecognised };
+  return { tables, unrecognised, failed };
 }
 
 export function requireTable(raw, name) {
   if (!(name in raw.tables)) {
     const found = Object.keys(raw.tables).sort().join(', ') || 'none';
+    const why = (raw.failed || [])
+      .map(f => `\n  A block starting '${f.header.slice(0, 60)}' would not parse: ${f.reason}`)
+      .join('');
     throw new Error(
-      `No '${name}' table in the export. Recognised tables: ${found}. ` +
+      `No '${name}' table in the export. Recognised tables: ${found}.${why}\n` +
       `If the export format changed, update table_signatures in spec/rules.json.`
     );
   }
@@ -78,11 +92,20 @@ function splitBlocks(text) {
 function parseBlock(block) {
   const columns = parseCsvLine(block[0]);
   if (!columns.length) return null;
-  const rows = block.slice(1).map(line => {
+  const rows = block.slice(1).map((line, i) => {
     const fields = parseCsvLine(line);
+    // A row with more fields than the header is malformed. pandas raises on
+    // this, so accepting it here by truncating would make the two builds
+    // disagree about the same file, which is worse than either behaviour.
+    // Short rows are padded, which is what pandas does too.
+    if (fields.length > columns.length) {
+      throw new Error(
+        `Expected ${columns.length} fields in line ${i + 2}, saw ${fields.length}`
+      );
+    }
     const row = {};
-    for (let i = 0; i < columns.length; i++) {
-      row[columns[i]] = fields[i] === undefined ? '' : fields[i];
+    for (let j = 0; j < columns.length; j++) {
+      row[columns[j]] = fields[j] === undefined ? '' : fields[j];
     }
     return row;
   });

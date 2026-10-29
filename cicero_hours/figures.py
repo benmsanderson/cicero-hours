@@ -15,9 +15,10 @@ from .model import (
     EXTERNAL_PROJECT_LABEL,
     INTERNAL_PROJECT_LABEL,
     TYPE_ORDER,
-    UNALLOCATED_PERSON,
+    UNALLOCATED_LABEL,
     Group,
     group_label,
+    is_unallocated,
 )
 
 INK = "#12181F"
@@ -104,7 +105,7 @@ def person_colours(group: Group) -> dict[str, str]:
         group.budget[group.budget["category"] == "Project"]
         .groupby("person")["hours"].sum().sort_values(ascending=False)
     )
-    names = [p for p in totals.index if p != UNALLOCATED_PERSON]
+    names = [p for p in totals.index if not is_unallocated(p)]
     palette = [c for c in PROJECT_PALETTE if c != UNALLOCATED_COLOUR]
     return {p: palette[i % len(palette)] for i, p in enumerate(names)}
 
@@ -284,7 +285,7 @@ def fig_person_budget_stack(group: Group, year: int, top_n: int = 6) -> go.Figur
     colours = project_colours(group)
     subtitle = (
         f"Largest {top_n} projects each, labelled where they fit; the rest pooled in grey. "
-        f"'{UNALLOCATED_PERSON}' is unassigned group time."
+        "Hatched bars are unassigned group time, not a colleague's workload."
     )
 
     fig = go.Figure()
@@ -513,10 +514,10 @@ def fig_project_team(group: Group, min_hours: float = 100.0) -> go.Figure:
         people = team.groupby("person")["hours"].sum().sort_values(ascending=False).index
         for person in people:
             sub = team[team["person"] == person].set_index("year").reindex(group.years).fillna(0.0)
-            unalloc = person == UNALLOCATED_PERSON
+            unalloc = is_unallocated(person)
             fig.add_bar(
                 x=years, y=sub["hours"].values,
-                name="Unallocated" if unalloc else person,
+                name=UNALLOCATED_LABEL if unalloc else person,
                 visible=(proj == projects[0]),
                 marker=dict(
                     color=UNALLOCATED_COLOUR if unalloc else colours.get(person, "#8899A6"),

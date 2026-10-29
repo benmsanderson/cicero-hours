@@ -4,7 +4,13 @@
 // and layout constants stay identical between the two builds so a semantic
 // cross-check on the trace data catches the moment they part company.
 
-import { CATEGORY_ORDER, INTERNAL_PROJECT_LABEL, TYPE_ORDER, UNALLOCATED_PERSON } from './rules.js';
+import {
+  CATEGORY_ORDER,
+  INTERNAL_PROJECT_LABEL,
+  TYPE_ORDER,
+  UNALLOCATED_LABEL,
+  isUnallocated,
+} from './rules.js';
 import { groupLabel, yearFraction } from './model.js';
 import {
   BUDGET_COLOUR,
@@ -281,7 +287,7 @@ export function figPersonBudgetStack(group, year, { topN = 6 } = {}) {
   const colours = projectColours(group);
   const subtitle =
     `Largest ${topN} projects each, labelled where they fit; the rest pooled in grey. ` +
-    `'${UNALLOCATED_PERSON}' is unassigned group time.`;
+    "Hatched bars are unassigned group time, not a colleague's workload.";
 
   const traces = [];
   const owner = [];
@@ -545,7 +551,7 @@ export function figProjectTeam(group, { minHours = 100.0 } = {}) {
     .map(([p]) => p);
   const years = group.years;
   const yearStr = years.map(String);
-  const colours = personColours(group, UNALLOCATED_PERSON);
+  const colours = personColours(group);
 
   const traces = [];
   const traceOwner = [];
@@ -559,7 +565,7 @@ export function figProjectTeam(group, { minHours = 100.0 } = {}) {
       const perYear = new Map();
       for (const y of years) perYear.set(y, 0);
       for (const r of team) if (r.person === person) perYear.set(r.year, (perYear.get(r.year) || 0) + r.hours);
-      const isUnalloc = person === UNALLOCATED_PERSON;
+      const isUnalloc = isUnallocated(person);
       const marker = { color: isUnalloc ? UNALLOCATED_COLOUR : (colours[person] || '#8899A6') };
       if (isUnalloc) {
         marker.pattern = { shape: '/', bgcolor: UNALLOCATED_COLOUR, fgcolor: '#FFFFFF', size: 6 };

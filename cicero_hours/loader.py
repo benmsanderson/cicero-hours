@@ -9,7 +9,7 @@ export drops straight in.
 from __future__ import annotations
 
 import io
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import pandas as pd
@@ -26,12 +26,20 @@ class RawExport:
     tables: dict[str, pd.DataFrame]
     unrecognised: list[pd.DataFrame]
     source: Path
+    # Blocks that looked like a table but would not parse, as (header, reason).
+    # One malformed row takes its whole table with it, so without the reason the
+    # only symptom is a table that is simply missing.
+    failed: list[tuple[str, str]] = field(default_factory=list)
 
     def require(self, name: str) -> pd.DataFrame:
         if name not in self.tables:
             found = ", ".join(sorted(self.tables)) or "none"
+            why = "".join(
+                f"\n  A block starting '{header[:60]}' would not parse: {reason}"
+                for header, reason in self.failed
+            )
             raise KeyError(
-                f"No '{name}' table in {self.source.name}. Recognised tables: {found}. "
+                f"No '{name}' table in {self.source.name}. Recognised tables: {found}.{why}\n"
                 "If the export format changed, update TABLE_SIGNATURES in loader.py."
             )
         return self.tables[name]
@@ -98,11 +106,13 @@ def load_export(path: str | Path) -> RawExport:
     text = path.read_text(encoding="utf-8-sig")
     tables: dict[str, pd.DataFrame] = {}
     unrecognised: list[pd.DataFrame] = []
+    failed: list[tuple[str, str]] = []
 
     for block in _split_blocks(text):
         try:
             df = pd.read_csv(io.StringIO("\n".join(block)))
-        except Exception:
+        except Exception as exc:
+            failed.append((block[0], str(exc).splitlines()[0]))
             continue
         cols = set(df.columns)
         for name, signature in TABLE_SIGNATURES:
@@ -112,4 +122,6 @@ def load_export(path: str | Path) -> RawExport:
         else:
             unrecognised.append(df)
 
-    return RawExport(tables=tables, unrecognised=unrecognised, source=path)
+    return RawExport(
+        tables=tables, unrecognised=unrecognised, source=path, failed=failed
+    )

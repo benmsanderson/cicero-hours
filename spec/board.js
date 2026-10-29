@@ -31,6 +31,19 @@ window.__cicero_boardInit = function initBoard(DATA) {
   // The year argument defaults to the year the board is showing; the plan file
   // and the chart pass one explicitly, because both look across all years.
   function people() { return DATA.people.concat(extraPeople); }
+
+  // Only a board spanning several groups needs to say which one anybody is in.
+  const GROUPS = DATA.groups || [];
+  const spansGroups = GROUPS.length > 1;
+  function homeGroup(person) { return (DATA.home_groups || {})[person] || null; }
+
+  // Hours moved from one group to another are a different proposition from a
+  // reshuffle inside one: two budget holders have to agree.
+  function crossesGroups(b) {
+    if (!spansGroups || !b.owner || !b.origin) return false;
+    const from = homeGroup(b.origin), to = homeGroup(b.owner);
+    return Boolean(from && to && from !== to);
+  }
   function forYear(y) { return blocks.filter(b => b.year === (y === undefined ? year : y)); }
   function ownedBy(person, y) { return forYear(y).filter(b => b.owner === person); }
   function total(person, y) { return ownedBy(person, y).reduce((s, b) => s + b.hours, 0); }
@@ -55,8 +68,9 @@ window.__cicero_boardInit = function initBoard(DATA) {
     const freed = inPool && b.origin !== null;
     const moved = !inPool && b.origin !== b.owner;
     const deferred = b.year !== b.oyear;
+    const crossed = crossesGroups(b);
     c.className = 'chip' + (inPool ? (freed ? ' freed' : ' unassigned') : (moved ? ' moved' : '')) +
-                  (deferred ? ' deferred' : '');
+                  (deferred ? ' deferred' : '') + (crossed ? ' crossed' : '');
     c.draggable = true;
     c.dataset.id = b.id;
     c.setAttribute('aria-selected', String(selected === b.id));
@@ -69,6 +83,8 @@ window.__cicero_boardInit = function initBoard(DATA) {
       (freed ? '<span class="from">was ' + b.origin + '</span>' : '') +
       (moved ? '<span class="from">from ' + (b.origin || 'pool') + '</span>' : '') +
       (deferred ? '<span class="from defer">from ' + b.oyear + '</span>' : '') +
+      (crossed ? '<span class="from cross" title="Moved between research groups, ' +
+        'so two budget holders have to agree">across groups</span>' : '') +
       '<span class="hrs">' + fmt(b.hours) + ' h</span>' +
       '<span class="split-btn" title="Split this block">split</span>' +
       '<span class="defer-btn" title="Move to a later year of this project">defer</span>' +
@@ -214,6 +230,8 @@ window.__cicero_boardInit = function initBoard(DATA) {
     const delta = now - was;
 
     const bits = [];
+    const home = homeGroup(person);
+    if (spansGroups && home) bits.push(home);
     if (second) bits.push('also in ' + second);
     if (rate) bits.push('billing ~' + fmt(rate) + ' h/yr at current pace');
 
@@ -278,9 +296,20 @@ window.__cicero_boardInit = function initBoard(DATA) {
     const grid = el('people-grid');
     grid.innerHTML = '';
     const sc = scale();
+    // Grouped first, so two teams read as two blocks instead of interleaving.
+    // A card added here has no group, and sorts after the ones that do.
     people()
       .slice()
-      .sort((a, b) => baseline(b) - baseline(a) || a.localeCompare(b))
+      .sort((a, b) => {
+        if (spansGroups) {
+          const ga = GROUPS.indexOf(homeGroup(a));
+          const gb = GROUPS.indexOf(homeGroup(b));
+          const ra = ga < 0 ? GROUPS.length : ga;
+          const rb = gb < 0 ? GROUPS.length : gb;
+          if (ra !== rb) return ra - rb;
+        }
+        return baseline(b) - baseline(a) || a.localeCompare(b);
+      })
       .forEach(p => grid.appendChild(personCard(p, sc)));
 
     renderChanges();

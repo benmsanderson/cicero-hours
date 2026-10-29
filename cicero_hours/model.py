@@ -20,11 +20,12 @@ from ._rules import (
     INTERNAL_PROJECT_LABEL,
     PROJECT_JOB_FLOOR,
     TYPE_ORDER,
-    UNALLOCATED_PERSON,
+    UNALLOCATED_LABEL,
+    UNALLOCATED_PREFIX,
 )
 from .loader import RawExport
 
-# Re-exported so `from cicero_hours.model import UNALLOCATED_PERSON` still works;
+# Re-exported so `from cicero_hours.model import UNALLOCATED_LABEL` still works;
 # the values themselves live in spec/rules.json.
 __all__ = [
     "ABSENCE_JOBS",
@@ -39,13 +40,25 @@ __all__ = [
     "INTERNAL_PROJECT_LABEL",
     "PROJECT_JOB_FLOOR",
     "TYPE_ORDER",
-    "UNALLOCATED_PERSON",
+    "UNALLOCATED_LABEL",
+    "UNALLOCATED_PREFIX",
     "available_groups",
     "build_group",
     "group_label",
+    "is_unallocated",
     "tidy_budget",
     "tidy_registered",
 ]
+
+
+def is_unallocated(person: object) -> bool:
+    """Is this the pseudo-employee carrying a group's unassigned hours?
+
+    There is one per group, named "Forsker" plus the group name, so a combined
+    export carries several. Matching the prefix rather than one literal name is
+    what stops the second group's pseudo-employee being read as a colleague.
+    """
+    return isinstance(person, str) and person.startswith(UNALLOCATED_PREFIX)
 
 
 @dataclass
@@ -118,7 +131,7 @@ def tidy_budget(raw: RawExport) -> pd.DataFrame:
     )
     out["project"] = out["project_full"].map(_project_label)
     out["category"] = out["project_no"].map(_category)
-    out["unallocated"] = out["person"] == UNALLOCATED_PERSON
+    out["unallocated"] = out["person"].map(is_unallocated)
     return out.dropna(subset=["year"]).reset_index(drop=True)
 
 
@@ -198,7 +211,7 @@ class Group:
     def people(self) -> list[str]:
         names = set(self.budget.loc[~self.budget["unallocated"], "person"].dropna())
         names |= set(self.registered["person"].dropna())
-        return sorted(names)
+        return sorted(n for n in names if not is_unallocated(n))
 
     def second_groups(self) -> dict[str, str]:
         """People who split their time with another research group, and which one.
@@ -214,6 +227,35 @@ class Group:
         tagged = b.assign(other=other).dropna(subset=["other"])
         return (
             tagged.groupby("person")["other"]
+            .agg(lambda s: s.mode().iloc[0])
+            .to_dict()
+        )
+
+    @property
+    def group_tags_present(self) -> list[str]:
+        """The groups this view spans, heaviest budget first.
+
+        A view of one group spans one group, even though a visitor from another
+        carries her home tag on every row: she is shown as working here, and her
+        own group is named as her second rather than as a column of the view.
+        """
+        if self.group_tag is not None and self.group_tag != ALL_GROUPS:
+            return [self.group_tag]
+        b = self.budget.dropna(subset=["group_tag"])
+        totals = b.groupby("group_tag")["hours"].sum().sort_values(ascending=False)
+        return [str(t) for t in totals.index]
+
+    def home_groups(self) -> dict[str, str]:
+        """Each person's own group, by their Specification 5 tag.
+
+        Only worth showing when the view spans several groups: with one group on
+        screen it is the same answer for everybody. The pseudo-employees are
+        left out, being bookkeeping rather than people.
+        """
+        b = self.budget.dropna(subset=["group_tag"])
+        b = b[~b["person"].map(is_unallocated)]
+        return (
+            b.groupby("person")["group_tag"]
             .agg(lambda s: s.mode().iloc[0])
             .to_dict()
         )
@@ -292,7 +334,7 @@ class Group:
         )
         cats = self.registered_by_category(year)
         out = pd.concat([budget, cats], axis=1).fillna(0.0)
-        out = out.drop(index=UNALLOCATED_PERSON, errors="ignore")
+        out = out.drop(index=[p for p in out.index if is_unallocated(p)], errors="ignore")
         out["registered_total"] = out[CATEGORY_ORDER].sum(axis=1)
         frac = self.assumptions.year_fraction(year)
         out["expected_to_date"] = out["project_budget"] * frac
@@ -408,5 +450,8 @@ def build_group(
         registered=registered.reset_index(drop=True),
         assumptions=assumptions,
         group_tag=tag,
-        excluded=tuple(sorted(before - after)),
+        # Colleagues the filter dropped, which is worth reporting. Another
+        # group's pseudo-employee going with them is bookkeeping, not a person,
+        # so it would only be noise in that line.
+        excluded=tuple(sorted(p for p in before - after if not is_unallocated(p))),
     )

@@ -17,6 +17,7 @@ from cicero_hours.model import (
     available_groups,
     build_group,
     group_label,
+    is_unallocated,
 )
 
 from .synthetic import write_export
@@ -50,6 +51,35 @@ def test_missing_table_names_itself_in_the_error(tmp_path):
     path.write_text('"Budget Type","Description"\r\n"2026","Tid"\r\n', encoding="utf-8")
     with pytest.raises(KeyError, match="budget"):
         load_export(path).require("budget")
+
+
+def test_a_malformed_row_says_which_line_broke_the_table(tmp_path):
+    """One bad row takes its whole table with it, so the error has to say so.
+
+    Without the reason the only symptom is a missing table, which reads as a
+    changed export format rather than as one line to go and look at.
+    """
+    header = ",".join(
+        f'"{c}"'
+        for c in (
+            "Avdeling", "Project Manager No.", "Project Manager Name", "Medarbeider",
+            "Prosjekt", "Oppgave", "Task Name", "Activity No.", "Job No.", "Job Name",
+            "Budget Type", "Specification5Name", "Specification5Description",
+            "Specification6Name", "Specification6Description", "Quantity - Hours",
+            "Quantity", "Total Billing Price - Company",
+        )
+    )
+    path = tmp_path / "malformed.csv"
+    path.write_text(
+        header + "\r\n"
+        + ",".join('"x"' for _ in range(18)) + "\r\n"
+        + ",".join('"x"' for _ in range(23)) + "\r\n",
+        encoding="utf-8",
+    )
+    raw = load_export(path)
+    assert raw.failed and "saw 23" in raw.failed[0][1]
+    with pytest.raises(KeyError, match="saw 23"):
+        raw.require("budget")
 
 
 # ------------------------------------------------------------------- tidying
@@ -122,6 +152,39 @@ def test_people_without_the_group_tag_are_filtered_out(group):
     assert "Alan Turing" not in group.people
     assert group.excluded == ("Alan Turing", "Rosalind Franklin")
     assert group.group_tag == "Utslippsreduksjon / Climate Mitigation"
+
+
+def test_every_groups_pseudo_employee_is_unallocated(export):
+    """The decisive multi-group case: one pseudo-employee per group.
+
+    Matching a single literal name leaves the other group's pseudo-employee
+    looking like a colleague with a large budget and nothing booked against it.
+    """
+    g = build_group(load_export(export), group_tag=ALL_GROUPS)
+    assert sorted(g.budget.loc[g.budget["unallocated"], "person"].unique()) == [
+        "Forsker Climate Mitigation",
+        "Forsker Climate System",
+    ]
+    assert g.people == [
+        "Ada Lovelace", "Grace Hopper", "Katherine Johnson", "Rosalind Franklin",
+    ]
+    assert not any(is_unallocated(p) for p in g.person_summary(2027).index)
+
+
+@pytest.mark.parametrize(
+    "person, expected",
+    [
+        ("Forsker Climate Mitigation", True),
+        ("Forsker Climate System", True),
+        ("Forsker ", True),
+        ("Ada Lovelace", False),
+        ("", False),
+        (None, False),
+        (float("nan"), False),
+    ],
+)
+def test_is_unallocated_matches_the_prefix_only(person, expected):
+    assert is_unallocated(person) is expected
 
 
 def test_explicit_exclusions_apply_on_top_of_the_tag(export):
@@ -423,3 +486,32 @@ def test_board_html_embeds_its_data_and_controls(group):
     for control in ("pool-chips", "people-grid", "board-reset", "board-undo",
                     "board-add", "board-csv", "year-2027"):
         assert control in markup
+
+
+def test_a_single_group_view_spans_one_group(group):
+    """A visitor carries her home tag on every row, which is not a second column.
+
+    Katherine's rows are tagged Climate System because that is where she sits,
+    but a Climate Mitigation board is a view of one group: she is shown as
+    working here, with her own group named as her second.
+    """
+    assert group.group_tags_present == ["Utslippsreduksjon / Climate Mitigation"]
+    assert board_data(group)["groups"] == ["Climate Mitigation"]
+
+
+def test_the_all_groups_view_names_every_person_s_own_group(export):
+    g = build_group(load_export(export), group_tag=ALL_GROUPS)
+    assert g.group_tags_present == [
+        "Utslippsreduksjon / Climate Mitigation",
+        "Klimasystemet/Climate System",
+    ]
+    assert g.home_groups() == {
+        "Ada Lovelace": "Utslippsreduksjon / Climate Mitigation",
+        "Grace Hopper": "Utslippsreduksjon / Climate Mitigation",
+        "Katherine Johnson": "Klimasystemet/Climate System",
+        "Rosalind Franklin": "Klimasystemet/Climate System",
+    }
+    assert not any(is_unallocated(p) for p in g.home_groups())
+    data = board_data(g)
+    assert data["groups"] == ["Climate Mitigation", "Climate System"]
+    assert data["home_groups"]["Rosalind Franklin"] == "Climate System"

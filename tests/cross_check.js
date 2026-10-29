@@ -24,7 +24,7 @@ const AS_OF = '2026-07-02';
     process.exit(2);
   }
 
-  const { loadExport } = await import('../web/src/loader.js');
+  const { loadExport, requireTable } = await import('../web/src/loader.js');
   const { availableGroups, buildGroup, yearFraction } = await import('../web/src/model.js');
   const { boardData } = await import('../web/src/board.js');
   const { ALL_GROUPS, BILLABLE_HOURS_DEFAULT } = await import('../web/src/rules.js');
@@ -47,11 +47,39 @@ const AS_OF = '2026-07-02';
     excluded: every.excluded,
     people: every.people,
     second_groups: every.second_groups(),
+    home_groups: every.home_groups(),
+    groups_present: every.group_tags_present,
+    unallocated: [...new Set(
+      every.budget.filter(r => r.unallocated && r.person !== null).map(r => r.person),
+    )].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)),
   };
   const expected = JSON.parse(fs.readFileSync(EXPECTED_PATH, 'utf8'));
 
   const diffs = [];
   compare(expected, actual, '', diffs);
+
+  // Not part of the snapshot: both loaders must refuse a block whose row has
+  // more fields than its header, and say which line did it. The Python errors
+  // there because pandas does; accepting it here by truncating would make the
+  // two builds disagree about the same file.
+  const malformedHeader = ['"a"', '"b"', '"c"'].join(',');
+  const malformed = [malformedHeader, '"1","2","3"', '"1","2","3","4"'].join('\r\n') + '\r\n';
+  const broken = loadExport(malformed);
+  if (!broken.failed || broken.failed.length !== 1) {
+    diffs.push('.loader: a malformed row should be recorded as a failed block');
+  } else if (!/saw 4/.test(broken.failed[0].reason)) {
+    diffs.push(`.loader: failure reason should say how many fields it saw, got ` +
+      `"${broken.failed[0].reason}"`);
+  } else {
+    try {
+      requireTable(broken, 'budget');
+      diffs.push('.loader: requireTable should throw when the table is missing');
+    } catch (err) {
+      if (!/saw 4/.test(err.message)) {
+        diffs.push(`.loader: the error should carry the parse reason, got "${err.message}"`);
+      }
+    }
+  }
 
   if (!diffs.length) {
     console.log(`ok  cross-check: JS matches spec/expected.json across ` +

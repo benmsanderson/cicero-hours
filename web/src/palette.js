@@ -2,7 +2,7 @@
 // board. Match cicero_hours/figures.py one for one, so the two builds paint
 // the same project the same colour and shade capacity zones identically.
 
-import { EXTERNAL_PROJECT_LABEL, INTERNAL_PROJECT_LABEL } from './rules.js';
+import { EXTERNAL_PROJECT_LABEL, INTERNAL_PROJECT_LABEL, isUnallocated } from './rules.js';
 
 export const INK = '#12181F';
 export const MUTED = '#6A7683';
@@ -65,7 +65,7 @@ export function projectColours(group) {
 // Stable colour per person, ordered by total budgeted hours descending. The
 // unallocated pseudo-employee is drawn in ochre elsewhere; keep that colour
 // out of the person palette so a real person is never mistaken for them.
-export function personColours(group, unallocatedPerson) {
+export function personColours(group) {
   const totals = new Map();
   for (const r of group.budget) {
     if (r.category !== 'Project') continue;
@@ -74,7 +74,7 @@ export function personColours(group, unallocatedPerson) {
   const names = [...totals.entries()]
     .sort((a, b) => b[1] - a[1])
     .map(([p]) => p)
-    .filter(p => p !== unallocatedPerson);
+    .filter(p => !isUnallocated(p));
   const palette = PROJECT_PALETTE.filter(c => c !== UNALLOCATED_COLOUR);
   const out = {};
   names.forEach((p, i) => { out[p] = palette[i % palette.length]; });

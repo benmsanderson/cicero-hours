@@ -12,7 +12,7 @@ import plotly.offline as pyo
 from . import figures as F
 from ._rules import SHELL_CSS as CSS
 from .board import BOARD_CSS, BOARD_JS, board_html
-from .model import UNALLOCATED_PERSON, Group, group_label
+from .model import Group, group_label
 
 JS = """
 const tabs = Array.from(document.querySelectorAll('nav button'));
@@ -134,8 +134,9 @@ def build_dashboard(group: Group, output: str | Path, title: str = "Climate Miti
     ground, so every comparison here uses project time only, with internal CICERO time and
     absence shown separately rather than folded in.</p>
     <p class="note"><b>Unallocated time.</b> The export books unassigned group hours to a
-    pseudo-employee, <i>{html.escape(UNALLOCATED_PERSON)}</i>. Those hours are drawn hatched
-    throughout and are never counted as a person's workload.</p>
+    pseudo-employee per group, named "Forsker" plus the group name. Those hours are drawn
+    hatched throughout and are never counted as a person's workload, in a combined export
+    as much as a single-group one.</p>
     <p class="note"><b>Dates.</b> The export carries no timestamps, so progress is judged against
     a straight line: at {html.escape(a.as_of.isoformat())}, {frac:.0%} of {year}'s working days
     have passed. Norwegian holiday leave is not spread evenly through the year, so an

@@ -11,7 +11,9 @@
   "internal_project_label": "Towards2040",
   "external_project_label": "External projects",
 
-  "unallocated_person": "Forsker Climate Mitigation",
+  "_unallocated_readme": "Hours budgeted to a group with nobody's name against them are booked to a pseudo-employee named 'Forsker' plus the group name, so there is one per group and an export spanning several groups carries several. Matching it as a prefix rather than a literal is what keeps the second group's pseudo-employee from being counted as a colleague with a workload. unallocated_label is what the dashboard calls those hours, since naming one group's pseudo-employee would be wrong in a combined view.",
+  "unallocated_prefix": "Forsker ",
+  "unallocated_label": "Unallocated",
 
   "_all_groups_readme": "Passing all_groups as the group tag keeps everyone who carries a group tag in either Specification 5 or 6, for an export that spans several groups. Central staff with no tag are still left out. all_groups_label is what the dashboard calls that view.",
   "all_groups": "all",

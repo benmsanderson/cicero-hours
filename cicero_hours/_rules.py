@@ -23,7 +23,10 @@ PROJECT_JOB_FLOOR: int = int(_DATA["project_job_floor"])
 ABSENCE_JOBS: set[int] = {int(j) for j in _DATA["absence_jobs"]}
 INTERNAL_JOBS: set[int] = {int(j) for j in _DATA["internal_jobs"]}
 
-UNALLOCATED_PERSON: str = str(_DATA["unallocated_person"])
+# One pseudo-employee per group, named "Forsker" plus the group name, so this is
+# a prefix rather than a literal; see spec/rules.json.
+UNALLOCATED_PREFIX: str = str(_DATA["unallocated_prefix"])
+UNALLOCATED_LABEL: str = str(_DATA["unallocated_label"])
 ALL_GROUPS: str = str(_DATA["all_groups"])
 ALL_GROUPS_LABEL: str = str(_DATA["all_groups_label"])
 CATEGORY_ORDER: list[str] = list(_DATA["category_order"])
