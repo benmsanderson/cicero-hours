@@ -53,6 +53,35 @@ def test_missing_table_names_itself_in_the_error(tmp_path):
         load_export(path).require("budget")
 
 
+def test_a_malformed_row_says_which_line_broke_the_table(tmp_path):
+    """One bad row takes its whole table with it, so the error has to say so.
+
+    Without the reason the only symptom is a missing table, which reads as a
+    changed export format rather than as one line to go and look at.
+    """
+    header = ",".join(
+        f'"{c}"'
+        for c in (
+            "Avdeling", "Project Manager No.", "Project Manager Name", "Medarbeider",
+            "Prosjekt", "Oppgave", "Task Name", "Activity No.", "Job No.", "Job Name",
+            "Budget Type", "Specification5Name", "Specification5Description",
+            "Specification6Name", "Specification6Description", "Quantity - Hours",
+            "Quantity", "Total Billing Price - Company",
+        )
+    )
+    path = tmp_path / "malformed.csv"
+    path.write_text(
+        header + "\r\n"
+        + ",".join('"x"' for _ in range(18)) + "\r\n"
+        + ",".join('"x"' for _ in range(23)) + "\r\n",
+        encoding="utf-8",
+    )
+    raw = load_export(path)
+    assert raw.failed and "saw 23" in raw.failed[0][1]
+    with pytest.raises(KeyError, match="saw 23"):
+        raw.require("budget")
+
+
 # ------------------------------------------------------------------- tidying
 
 
