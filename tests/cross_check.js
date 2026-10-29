@@ -47,6 +47,11 @@ const AS_OF = '2026-07-02';
     excluded: every.excluded,
     people: every.people,
     second_groups: every.second_groups(),
+    home_groups: every.home_groups(),
+    groups_present: every.group_tags_present,
+    unallocated: [...new Set(
+      every.budget.filter(r => r.unallocated && r.person !== null).map(r => r.person),
+    )].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)),
   };
   const expected = JSON.parse(fs.readFileSync(EXPECTED_PATH, 'utf8'));
 

@@ -245,12 +245,20 @@ def compute() -> dict:
         snapshot = _snapshot_group(g)
         every = build_group(raw, assumptions, group_tag=ALL_GROUPS)
         # Who the all-groups view keeps; the rollups are the same code as above.
+        # home_groups and groups_present are pinned here rather than only in the
+        # single-group board, where they are a one-group answer that would let a
+        # multi-group regression through.
         snapshot["all_groups"] = {
             "available_groups": available_groups(raw),
             "group_tag": every.group_tag,
             "excluded": list(every.excluded),
             "people": list(every.people),
             "second_groups": dict(sorted(every.second_groups().items())),
+            "home_groups": dict(sorted(every.home_groups().items())),
+            "groups_present": list(every.group_tags_present),
+            "unallocated": sorted(
+                every.budget.loc[every.budget["unallocated"], "person"].dropna().unique()
+            ),
         }
 
     return {

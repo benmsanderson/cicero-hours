@@ -486,3 +486,32 @@ def test_board_html_embeds_its_data_and_controls(group):
     for control in ("pool-chips", "people-grid", "board-reset", "board-undo",
                     "board-add", "board-csv", "year-2027"):
         assert control in markup
+
+
+def test_a_single_group_view_spans_one_group(group):
+    """A visitor carries her home tag on every row, which is not a second column.
+
+    Katherine's rows are tagged Climate System because that is where she sits,
+    but a Climate Mitigation board is a view of one group: she is shown as
+    working here, with her own group named as her second.
+    """
+    assert group.group_tags_present == ["Utslippsreduksjon / Climate Mitigation"]
+    assert board_data(group)["groups"] == ["Climate Mitigation"]
+
+
+def test_the_all_groups_view_names_every_person_s_own_group(export):
+    g = build_group(load_export(export), group_tag=ALL_GROUPS)
+    assert g.group_tags_present == [
+        "Utslippsreduksjon / Climate Mitigation",
+        "Klimasystemet/Climate System",
+    ]
+    assert g.home_groups() == {
+        "Ada Lovelace": "Utslippsreduksjon / Climate Mitigation",
+        "Grace Hopper": "Utslippsreduksjon / Climate Mitigation",
+        "Katherine Johnson": "Klimasystemet/Climate System",
+        "Rosalind Franklin": "Klimasystemet/Climate System",
+    }
+    assert not any(is_unallocated(p) for p in g.home_groups())
+    data = board_data(g)
+    assert data["groups"] == ["Climate Mitigation", "Climate System"]
+    assert data["home_groups"]["Rosalind Franklin"] == "Climate System"

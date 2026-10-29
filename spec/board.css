@@ -78,6 +78,8 @@
 .chip .split-btn, .chip .defer-btn { cursor: pointer; color: var(--muted); font-size: 11px; }
 .chip .split-btn:hover, .chip .defer-btn:hover { color: var(--teal); }
 .chip.deferred { border-left: 3px solid #6B4A72; }
+.chip.crossed { border-left: 3px solid #B4552F; }
+.chip .from.cross { color: #B4552F; font-weight: 600; }
 .chip .from.defer { color: #6B4A72; }
 .deferrer { padding: 6px 8px; border: 1px dashed var(--hairline); border-top: 0;
             background: #F6F2F7; font-size: 12px; }

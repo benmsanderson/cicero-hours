@@ -342,6 +342,42 @@ export class Group {
     return out;
   }
 
+  // The groups this view spans, heaviest budget first. A view of one group
+  // spans one group, even though a visitor from another carries her home tag
+  // on every row: she is shown as working here, and her own group is named as
+  // her second rather than as a column of the view.
+  get group_tags_present() {
+    if (this.group_tag !== null && this.group_tag !== ALL_GROUPS) return [this.group_tag];
+    const totals = new Map();
+    for (const r of this.budget) {
+      if (r.group_tag === null) continue;
+      totals.set(r.group_tag, (totals.get(r.group_tag) || 0) + r.hours);
+    }
+    return [...totals.entries()]
+      .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
+      .map(([t]) => t);
+  }
+
+  // Each person's own group, by their Specification 5 tag. Only worth showing
+  // when the view spans several groups: with one group on screen it is the
+  // same answer for everybody. The pseudo-employees are left out, being
+  // bookkeeping rather than people.
+  home_groups() {
+    const bins = new Map();
+    for (const r of this.budget) {
+      if (r.group_tag === null || r.person === null || isUnallocated(r.person)) continue;
+      const m = bins.get(r.person) || new Map();
+      m.set(r.group_tag, (m.get(r.group_tag) || 0) + 1);
+      bins.set(r.person, m);
+    }
+    const out = {};
+    for (const [p, m] of bins) {
+      out[p] = [...m.entries()]
+        .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))[0][0];
+    }
+    return out;
+  }
+
   // ------------------------------------------------------------- rollups
 
   // {person: {Project, Internal, Absence, Other}} for a year (or all years).

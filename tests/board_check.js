@@ -135,11 +135,33 @@ async function main() {
   const receiver = D.people.find(p => p !== donor);
   check("committed hours appear as chips on their owner's card",
         chipsOn(donor).some(c => c.querySelector(".name").textContent === busiest.project));
-  check("cards are sorted with the heaviest baseline first",
-        cards()[0].dataset.person === D.people
-          .slice()
-          .sort((a, b) => ((D.baseline[b] || {})[D.default_year] || 0) -
-                          ((D.baseline[a] || {})[D.default_year] || 0))[0]);
+  // Cards group by research group first, then by baseline within each group,
+  // so two teams read as two blocks rather than interleaving. With one group on
+  // screen that first key is constant and the order is baseline alone.
+  const GROUPS = D.groups || [];
+  const homeOf = (p) => (D.home_groups || {})[p] || null;
+  const rankOf = (p) => {
+    const i = GROUPS.indexOf(homeOf(p));
+    return i < 0 ? GROUPS.length : i;
+  };
+  const expectedOrder = D.people.slice().sort((a, b) => {
+    if (GROUPS.length > 1 && rankOf(a) !== rankOf(b)) return rankOf(a) - rankOf(b);
+    return ((D.baseline[b] || {})[D.default_year] || 0) -
+           ((D.baseline[a] || {})[D.default_year] || 0) ||
+           (a < b ? -1 : a > b ? 1 : 0);
+  });
+  check("cards are grouped by research group, heaviest baseline first within each",
+        cards().map(c => c.dataset.person).join("|") === expectedOrder.join("|"),
+        cards().map(c => c.dataset.person).slice(0, 4).join(", "));
+
+  if (GROUPS.length > 1) {
+    check("each card names the group its person is in",
+          D.people.every(p => !homeOf(p) ||
+            cardFor(p).querySelector(".sub").textContent.includes(homeOf(p))));
+  } else {
+    check("a single-group board does not label every card with the one group",
+          cards().every(c => !GROUPS.some(g => c.querySelector(".sub").textContent.includes(g))));
+  }
 
   // --- moving committed hours between people --------------------------------
   const donorBefore = planned(donor), receiverBefore = planned(receiver);

@@ -117,6 +117,12 @@ def board_data(group: Group, plan_file: str = "allocation_plan.txt") -> dict:
         "baseline": baseline,
         "rate": rate,
         "second_groups": {p: group_label(g) for p, g in group.second_groups().items()},
+        # Which group each person is in, and the groups on screen. Both are only
+        # used when there is more than one: moving hours between groups is a
+        # different proposition from moving them inside one, since two budget
+        # holders have to agree, and a board that does not say so hides it.
+        "home_groups": {p: group_label(g) for p, g in group.home_groups().items()},
+        "groups": [group_label(g) for g in group.group_tags_present],
         "blocks": blocks,
         "project_years": project_years,
         "project_colour": project_colours(group),

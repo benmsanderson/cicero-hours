@@ -231,6 +231,35 @@ class Group:
             .to_dict()
         )
 
+    @property
+    def group_tags_present(self) -> list[str]:
+        """The groups this view spans, heaviest budget first.
+
+        A view of one group spans one group, even though a visitor from another
+        carries her home tag on every row: she is shown as working here, and her
+        own group is named as her second rather than as a column of the view.
+        """
+        if self.group_tag is not None and self.group_tag != ALL_GROUPS:
+            return [self.group_tag]
+        b = self.budget.dropna(subset=["group_tag"])
+        totals = b.groupby("group_tag")["hours"].sum().sort_values(ascending=False)
+        return [str(t) for t in totals.index]
+
+    def home_groups(self) -> dict[str, str]:
+        """Each person's own group, by their Specification 5 tag.
+
+        Only worth showing when the view spans several groups: with one group on
+        screen it is the same answer for everybody. The pseudo-employees are
+        left out, being bookkeeping rather than people.
+        """
+        b = self.budget.dropna(subset=["group_tag"])
+        b = b[~b["person"].map(is_unallocated)]
+        return (
+            b.groupby("person")["group_tag"]
+            .agg(lambda s: s.mode().iloc[0])
+            .to_dict()
+        )
+
     # --------------------------------------------------------------- rollups
 
     def registered_by_category(self, year: int | None = None) -> pd.DataFrame:
